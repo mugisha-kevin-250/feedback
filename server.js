@@ -104,11 +104,23 @@ app.use('/api/', limiter);
 // =============================================
 let isMongoConnected = false;
 
-// Use MongoDB Atlas or local MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/serverate';
-console.log('🔌 MONGODB_URI:', MONGODB_URI ? '[SET] ' + MONGODB_URI.replace(/\/\/.*@/, '//***@') : '[NOT SET - using localhost]');
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+    console.error('========================================');
+    console.error('❌ CRITICAL: MONGODB_URI is NOT SET');
+    console.error('========================================');
+    console.error('Set MONGODB_URI in your environment variables.');
+    console.error('Example: mongodb+srv://user:pass@cluster.mongodb.net/dbname?retryWrites=true&w=majority');
+    console.error('Falling back to in-memory mode...');
+} else {
+    console.log('========================================');
+    console.log('🔌 MONGODB_URI detected:', MONGODB_URI.replace(/\/\/.*@/, '//***@'));
+    console.log('========================================');
+}
 
-mongoose.connect(MONGODB_URI, {
+const resolvedMongoUri = MONGODB_URI || 'mongodb://localhost:27017/serverate';
+
+mongoose.connect(resolvedMongoUri, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
 })
