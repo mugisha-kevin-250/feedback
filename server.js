@@ -90,7 +90,8 @@ if (EMAIL_USER && EMAIL_PASS) {
 app.use(cors({
     origin: [
         'https://customer-feedback-rev1.onrender.com',
-        'https://*.netlify.app',
+        'https://tablevoice.netlify.app',
+        /https:\/\/.*\.netlify\.app/,
         'http://localhost:3000',
         'http://localhost:10000'
     ],
