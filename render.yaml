@@ -18,3 +18,11 @@ services:
         value: smtp.gmail.com
       - key: EMAIL_PORT
         value: 587
+      - key: EMAIL_USER
+        value: aimekevinmugisha@gmail.com
+      - key: EMAIL_PASS
+        value: kowf gcic ylwk ovyp
+      - key: EMAIL_FROM
+        value: aimekevinmugisha@gmail.com
+      - key: SENDGRID_API_KEY
+        value: replace_with_your_sendgrid_api_key
