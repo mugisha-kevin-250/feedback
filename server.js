@@ -1412,14 +1412,76 @@ app.post('/api/email/send-announcement', authenticateToken, [
             currentSettings = fallbackData.settings;
         }
 
+        const sendgridKey = currentSettings?.sendgrid_api_key || process.env.SENDGRID_API_KEY || '';
+        const from = currentSettings?.email_from || process.env.EMAIL_FROM || currentSettings?.email_user || process.env.EMAIL_USER || '';
+
+        // --- Try SendGrid HTTP API first (works on Render free tier, no SMTP needed) ---
+        if (sendgridKey) {
+            try {
+                const https = require('https');
+                const payload = JSON.stringify({
+                    personalizations: [{
+                        to: customers.map(c => ({ email: c.email })),
+                        subject: subject
+                    }],
+                    from: { email: from },
+                    content: [{
+                        type: 'text/plain',
+                        value: emailBody
+                    }]
+                });
+
+                const result = await new Promise((resolve, reject) => {
+                    const req = https.request({
+                        hostname: 'api.sendgrid.com',
+                        path: '/v3/mail/send',
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'Bearer ' + sendgridKey,
+                            'Content-Type': 'application/json',
+                            'Content-Length': Buffer.byteLength(payload)
+                        },
+                        timeout: 15000
+                    }, (apiRes) => {
+                        let responseBody = '';
+                        apiRes.on('data', (chunk) => responseBody += chunk);
+                        apiRes.on('end', () => {
+                            if (apiRes.statusCode >= 200 && apiRes.statusCode < 300) {
+                                resolve({ success: true, count: customers.length });
+                            } else {
+                                reject(new Error('SendGrid API error: ' + apiRes.statusCode + ' ' + responseBody));
+                            }
+                        });
+                    });
+                    req.on('timeout', () => {
+                        req.destroy();
+                        reject(new Error('SendGrid API request timed out'));
+                    });
+                    req.on('error', reject);
+                    req.write(payload);
+                    req.end();
+                });
+
+                return res.json({ success: true, message: `Announcement sent to ${result.count} customers via SendGrid` });
+
+            } catch (sgErr) {
+                console.error('SendGrid error:', sgErr);
+                if (!process.env.SENDGRID_API_KEY) {
+                    // Fall through to SMTP if SendGrid wasn't the intended method
+                } else {
+                    return res.status(500).json({ error: 'Failed to send announcement: ' + sgErr.message });
+                }
+            }
+        }
+
+        // --- Fall back to SMTP ---
         const host = currentSettings?.email_host || process.env.EMAIL_HOST || 'smtp.gmail.com';
         const port = currentSettings?.email_port ? parseInt(currentSettings.email_port) : (parseInt(process.env.EMAIL_PORT) || 587);
         const user = currentSettings?.email_user || process.env.EMAIL_USER || '';
         const pass = currentSettings?.email_pass || process.env.EMAIL_PASS || '';
-        const from = currentSettings?.email_from || process.env.EMAIL_FROM || user;
 
         if (!user || !pass) {
-            return res.status(500).json({ error: 'Email service not configured. Please configure SMTP settings in the admin panel (Announcements tab).' });
+            return res.status(500).json({ error: 'Email service not configured. Please configure SMTP settings or a SendGrid API key in the admin panel (Settings tab).' });
         }
 
         const smtpConfig = {
@@ -1436,6 +1498,26 @@ app.post('/api/email/send-announcement', authenticateToken, [
             smtpConfig.tls = { rejectUnauthorized: false };
         }
 
+        const mailOptions = {
+            from: from,
+            bcc: customers.map(c => c.email),
+            subject: subject,
+            text: emailBody,
+            html: '<p>' + emailBody.replace(/\n/g, '<br>') + '</p>'
+        };
+
+        // Try existing global transporter first
+        if (transporter) {
+            try {
+                await mailTransporterSend(transporter, mailOptions);
+                return res.json({ success: true, message: `Announcement sent to ${customers.length} customers` });
+            } catch (smtpErr) {
+                console.error('SMTP send failed:', smtpErr);
+                return res.status(500).json({ error: 'Failed to send announcement: ' + smtpErr.message + '. Note: SMTP may be blocked on your hosting platform. Consider using SendGrid API instead.' });
+            }
+        }
+
+        // Create new transporter and verify
         const mailTransporter = nodemailer.createTransport(smtpConfig);
 
         try {
@@ -1449,16 +1531,8 @@ app.post('/api/email/send-announcement', authenticateToken, [
             });
         } catch (verifyErr) {
             console.error('SMTP verification failed:', verifyErr);
-            return res.status(500).json({ error: 'SMTP connection failed: ' + verifyErr.message });
+            return res.status(500).json({ error: 'SMTP connection failed: ' + verifyErr.message + '. Consider using SendGrid API key instead.' });
         }
-
-        const mailOptions = {
-            from: from,
-            bcc: customers.map(c => c.email),
-            subject: subject,
-            text: emailBody,
-            html: `<p>${emailBody.replace(/\n/g, '<br>')}</p>`
-        };
 
         await mailTransporter.sendMail(mailOptions);
         res.json({ success: true, message: `Announcement sent to ${customers.length} customers` });
@@ -1467,6 +1541,15 @@ app.post('/api/email/send-announcement', authenticateToken, [
         res.status(500).json({ error: 'Failed to send announcement: ' + err.message });
     }
 });
+
+function mailTransporterSend(transporterObj, mailOptions) {
+    return new Promise((resolve, reject) => {
+        transporterObj.sendMail(mailOptions, (err, info) => {
+            if (err) reject(err);
+            else resolve(info);
+        });
+    });
+}
 
 // =============================================
 // ANALYTICS ROUTES
@@ -1844,7 +1927,8 @@ app.get('/api/settings', authenticateToken, async (req, res) => {
                     email_port: 587,
                     email_user: '',
                     email_pass: '',
-                    email_from: ''
+                    email_from: '',
+                    sendgrid_api_key: ''
                 };
             }
         } else {
@@ -1859,7 +1943,7 @@ app.get('/api/settings', authenticateToken, async (req, res) => {
 
 // Update settings
 app.put('/api/settings', authenticateToken, async (req, res) => {
-    const { restaurantName, description, includeServerRating, includeComment, emailHost, emailPort, emailUser, emailPass, emailFrom, email_host, email_port, email_user, email_pass, email_from } = req.body;
+    const { restaurantName, description, includeServerRating, includeComment, emailHost, emailPort, emailUser, emailPass, emailFrom, sendgridApiKey, email_host, email_port, email_user, email_pass, email_from, sendgrid_api_key } = req.body;
 
     try {
         let settings = null;
@@ -1875,6 +1959,7 @@ app.put('/api/settings', authenticateToken, async (req, res) => {
             if (emailUser !== undefined || email_user !== undefined) updateData.email_user = emailUser || email_user;
             if (emailPass !== undefined || email_pass !== undefined) updateData.email_pass = emailPass || email_pass;
             if (emailFrom !== undefined || email_from !== undefined) updateData.email_from = emailFrom || email_from;
+            if (sendgridApiKey !== undefined || sendgrid_api_key !== undefined) updateData.sendgrid_api_key = sendgridApiKey || sendgrid_api_key;
 
             const result = await db.collection('settings').findOneAndUpdate(
                 {},
@@ -1892,6 +1977,7 @@ app.put('/api/settings', authenticateToken, async (req, res) => {
             if (emailUser !== undefined || email_user !== undefined) fallbackData.settings.email_user = emailUser || email_user;
             if (emailPass !== undefined || email_pass !== undefined) fallbackData.settings.email_pass = emailPass || email_pass;
             if (emailFrom !== undefined || email_from !== undefined) fallbackData.settings.email_from = emailFrom || email_from;
+            if (sendgridApiKey !== undefined || sendgrid_api_key !== undefined) fallbackData.settings.sendgrid_api_key = sendgridApiKey || sendgrid_api_key;
             fallbackData.settings.updated_at = new Date();
             settings = fallbackData.settings;
             saveFallbackDataToFile();
