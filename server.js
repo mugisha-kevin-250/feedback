@@ -1263,11 +1263,17 @@ app.get('/api/customers/download-pdf', authenticateToken, async (req, res) => {
             customers = sorted.slice(skip, skip + limit);
         }
 
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename=customers.pdf');
+
         const doc = new PDFDocument({ margin: 50, size: 'A4' });
         const chunks = [];
         doc.on('data', chunk => chunks.push(chunk));
         doc.on('end', () => res.send(Buffer.concat(chunks)));
-        doc.on('error', (err) => res.status(500).json({ error: 'Failed to generate PDF' }));
+        doc.on('error', (err) => {
+            console.error('PDF generation error:', err);
+            if (!res.headersSent) res.status(500).json({ error: 'Failed to generate PDF' });
+        });
 
         doc.fontSize(20).text('ServeRate - Customer List', { align: 'center' });
         doc.moveDown(0.5);
@@ -1277,54 +1283,49 @@ app.get('/api/customers/download-pdf', authenticateToken, async (req, res) => {
         doc.fontSize(14).text('Customers', { underline: true });
         doc.moveDown(0.3);
 
-        const tableTop = doc.y;
-        const colWidths = [150, 200, 120, 80];
-        const headers = ['Name', 'Email', 'Phone', 'Date Added'];
         const startX = 50;
+        const colWidths = [150, 200, 120, 80];
+        const rowHeight = 18;
+        let currentY = doc.y;
 
         doc.fontSize(10).font('Helvetica-Bold');
-        headers.forEach((h, i) => {
-            doc.text(h, startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0), tableTop, { width: colWidths[i], align: 'left' });
-        });
-
+        doc.text('Name', startX, currentY, { width: colWidths[0] });
+        doc.text('Email', startX + colWidths[0], currentY, { width: colWidths[1] });
+        doc.text('Phone', startX + colWidths[0] + colWidths[1], currentY, { width: colWidths[2] });
+        doc.text('Date Added', startX + colWidths[0] + colWidths[1] + colWidths[2], currentY, { width: colWidths[3] });
         doc.font('Helvetica');
+        currentY += 20;
+
         customers.forEach((c, idx) => {
-            const rowY = tableTop + 20 + idx * 18;
-            if (rowY > 700) {
+            if (idx > 0 && idx % 20 === 0) {
                 doc.addPage();
-                const newTop = 50;
+                currentY = 50;
                 doc.fontSize(10).font('Helvetica-Bold');
-                headers.forEach((h, i) => {
-                    doc.text(h, startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0), newTop, { width: colWidths[i], align: 'left' });
-                });
+                doc.text('Name', startX, currentY, { width: colWidths[0] });
+                doc.text('Email', startX + colWidths[0], currentY, { width: colWidths[1] });
+                doc.text('Phone', startX + colWidths[0] + colWidths[1], currentY, { width: colWidths[2] });
+                doc.text('Date Added', startX + colWidths[0] + colWidths[1] + colWidths[2], currentY, { width: colWidths[3] });
                 doc.font('Helvetica');
-                customers.forEach((c2, idx2) => {
-                    const rowY2 = newTop + 20 + idx2 * 18;
-                    const name = c2.name || '';
-                    const email = c2.email || '';
-                    const phone = c2.phone || '';
-                    const date = new Date(c2.created_at).toLocaleDateString();
-                    doc.text(name, startX, rowY2, { width: colWidths[0] });
-                    doc.text(email, startX + colWidths[0], rowY2, { width: colWidths[1] });
-                    doc.text(phone, startX + colWidths[0] + colWidths[1], rowY2, { width: colWidths[2] });
-                    doc.text(date, startX + colWidths[0] + colWidths[1] + colWidths[2], rowY2, { width: colWidths[3] });
-                });
-                return;
+                currentY += 20;
             }
+
             const name = c.name || '';
             const email = c.email || '';
             const phone = c.phone || '';
             const date = new Date(c.created_at).toLocaleDateString();
-            doc.text(name, startX, rowY, { width: colWidths[0] });
-            doc.text(email, startX + colWidths[0], rowY, { width: colWidths[1] });
-            doc.text(phone, startX + colWidths[0] + colWidths[1], rowY, { width: colWidths[2] });
-            doc.text(date, startX + colWidths[0] + colWidths[1] + colWidths[2], rowY, { width: colWidths[3] });
+
+            doc.text(name, startX, currentY, { width: colWidths[0] });
+            doc.text(email, startX + colWidths[0], currentY, { width: colWidths[1] });
+            doc.text(phone, startX + colWidths[0] + colWidths[1], currentY, { width: colWidths[2] });
+            doc.text(date, startX + colWidths[0] + colWidths[1] + colWidths[2], currentY, { width: colWidths[3] });
+
+            currentY += rowHeight;
         });
 
         doc.end();
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Failed to download customers PDF' });
+        if (!res.headersSent) res.status(500).json({ error: 'Failed to download customers PDF' });
     }
 });
 
