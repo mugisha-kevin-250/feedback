@@ -14,6 +14,7 @@ const fs = require('fs');
 const stream = require('stream');
 
 const app = express();
+app.set('trust proxy', 1);
 
 const FALLBACK_DATA_FILE = path.join(__dirname, 'fallback-data.json');
 
