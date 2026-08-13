@@ -60,12 +60,18 @@ function updateEmailTransporter(settings) {
     const from = settings.email_from || process.env.EMAIL_FROM || user;
 
     if (user && pass) {
-        transporter = nodemailer.createTransport({
+        const smtpConfig = {
             host: host,
             port: port,
             secure: port === 465,
             auth: { user: user, pass: pass }
-        });
+        };
+
+        if (port === 465 || host.includes('gmail')) {
+            smtpConfig.tls = { rejectUnauthorized: false };
+        }
+
+        transporter = nodemailer.createTransport(smtpConfig);
         console.log('✅ Email transporter updated from settings');
     } else {
         transporter = null;
@@ -1416,12 +1422,35 @@ app.post('/api/email/send-announcement', authenticateToken, [
             return res.status(500).json({ error: 'Email service not configured. Please configure SMTP settings in the admin panel (Announcements tab).' });
         }
 
-        const mailTransporter = nodemailer.createTransport({
+        const smtpConfig = {
             host: host,
             port: port,
             secure: port === 465,
-            auth: { user: user, pass: pass }
-        });
+            auth: { user: user, pass: pass },
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            timeout: 60000
+        };
+
+        if (port === 465 || host.includes('gmail')) {
+            smtpConfig.tls = { rejectUnauthorized: false };
+        }
+
+        const mailTransporter = nodemailer.createTransport(smtpConfig);
+
+        try {
+            await new Promise((resolve, reject) => {
+                const timer = setTimeout(() => {
+                    reject(new Error('SMTP connection timeout - please verify your SMTP settings'));
+                }, 15000);
+                mailTransporter.verify()
+                    .then(() => { clearTimeout(timer); resolve(); })
+                    .catch((err) => { clearTimeout(timer); reject(err); });
+            });
+        } catch (verifyErr) {
+            console.error('SMTP verification failed:', verifyErr);
+            return res.status(500).json({ error: 'SMTP connection failed: ' + verifyErr.message });
+        }
 
         const mailOptions = {
             from: from,
