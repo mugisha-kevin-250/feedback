@@ -402,6 +402,60 @@ app.post('/api/auth/login', [
     }
 });
 
+// Change password
+app.post('/api/auth/change-password', authenticateToken, [
+    body('oldPassword').notEmpty().withMessage('Current password required'),
+    body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: errors.array()[0].msg });
+    }
+
+    const { oldPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    try {
+        let user = null;
+        let password_hash = null;
+
+        if (isMongoConnected) {
+            const db = mongoose.connection.db;
+            user = await db.collection('managers').findOne({ _id: new mongoose.Types.ObjectId(userId) });
+            if (user) password_hash = user.password_hash;
+        } else {
+            user = fallbackData.managers.find(m => m.id === userId);
+            if (user) password_hash = user.password_hash;
+        }
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const valid = await bcrypt.compare(oldPassword, password_hash);
+        if (!valid) {
+            return res.status(401).json({ error: 'Current password is incorrect' });
+        }
+
+        const hashedPassword = isMongoConnected ? await bcrypt.hash(newPassword, 10) : bcrypt.hashSync(newPassword, 10);
+
+        if (isMongoConnected) {
+            await db.collection('managers').updateOne(
+                { _id: new mongoose.Types.ObjectId(userId) },
+                { $set: { password_hash: hashedPassword, updated_at: new Date() } }
+            );
+        } else {
+            user.password_hash = hashedPassword;
+            saveFallbackDataToFile();
+        }
+
+        res.json({ success: true, message: 'Password updated successfully' });
+    } catch (err) {
+        console.error('Change password error:', err);
+        res.status(500).json({ error: 'Failed to change password' });
+    }
+});
+
 // Logout
 app.post('/api/auth/logout',  (req, res) => {
     res.json({ success: true });

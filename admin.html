@@ -711,67 +711,178 @@
             align-items: center;
             justify-content: center;
             z-index: 99999;
+            padding: 16px;
         }
         #loginOverlay.hidden {
             display: none;
         }
         .login-card {
-            background: white;
-            padding: 32px;
-            border-radius: 16px;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.16);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 40px 32px;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(108, 92, 231, 0.1);
             width: 100%;
-            max-width: 380px;
+            max-width: 420px;
             text-align: center;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #6c5ce7, #a29bfe, #6c5ce7);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .login-logo {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 24px rgba(108, 92, 231, 0.35);
         }
         .login-card h2 {
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             color: #212529;
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
         .login-card p {
             color: #868e96;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
+            margin-bottom: 28px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .login-card .input-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        .login-card label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #495057;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .login-card input {
             width: 100%;
-            padding: 10px 14px;
+            padding: 12px 16px;
             border: 2px solid #e9ecef;
-            border-radius: 8px;
+            border-radius: 12px;
             font-size: 15px;
-            margin-bottom: 12px;
+            transition: all 0.2s;
+            background: #f8f9fa;
+            color: #212529;
+            box-sizing: border-box;
+        }
+        .login-card input:focus {
+            outline: none;
+            border-color: #6c5ce7;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1);
         }
         .login-card button {
             width: 100%;
-            padding: 10px;
-            background: #6c5ce7;
+            padding: 14px;
+            background: linear-gradient(135deg, #6c5ce7, #5a4bd1);
             color: white;
             border: none;
-            border-radius: 40px;
+            border-radius: 12px;
             font-weight: 600;
             cursor: pointer;
-            font-size: 15px;
+            font-size: 16px;
+            transition: all 0.2s;
+            margin-top: 8px;
+            box-shadow: 0 4px 14px rgba(108, 92, 231, 0.4);
         }
         .login-card button:hover {
-            background: #5a4bd1;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.5);
+        }
+        .login-card button:active {
+            transform: translateY(0);
+        }
+        .login-card button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
         .login-error {
             color: #e17055;
-            margin-top: 10px;
+            margin-top: 12px;
             font-size: 0.9rem;
             min-height: 20px;
+            font-weight: 500;
+        }
+        .login-footer {
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: #adb5bd;
+        }
+
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 32px 20px;
+                border-radius: 20px;
+            }
+            .login-logo {
+                width: 56px;
+                height: 56px;
+                font-size: 24px;
+                border-radius: 16px;
+            }
+            .login-card h2 {
+                font-size: 1.5rem;
+            }
         }
     </style>
 </head>
 <body>
     <div id="loginOverlay">
         <div class="login-card">
-            <h2>ServeRate Admin</h2>
-            <p>Sign in to access the dashboard</p>
-            <input type="email" id="loginEmail" placeholder="admin@serverate.com" />
-            <input type="password" id="loginPassword" placeholder="admin123" />
-            <button id="loginBtn">Sign In</button>
-            <div class="login-error" id="loginError"></div>
+            <div class="login-logo">SR</div>
+            <h2>Welcome back</h2>
+            <p>Sign in to access the admin dashboard</p>
+            <form id="loginForm" autocomplete="off">
+                <div class="input-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" placeholder="admin@serverate.com" required />
+                </div>
+                <div class="input-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password" required />
+                </div>
+                <button type="submit" id="loginBtn">
+                    <span id="loginBtnText">Sign In</span>
+                </button>
+                <div class="login-error" id="loginError"></div>
+            </form>
+            <div class="login-footer">ServeRate Admin Panel</div>
         </div>
     </div>
     <div class="admin-page" id="adminPage" style="display:none;">
@@ -788,6 +899,7 @@
                 <button data-tab="tabCustomers">Customers</button>
                 <button data-tab="tabAnnouncements">Announcements</button>
                 <button data-tab="tabReports">Reports</button>
+                <button id="changePasswordNav" style="margin-top:12px; background:#f8f9fa; border:2px solid #e9ecef; color:#495057; text-align:center;">Change Password</button>
             </div>
         </aside>
         <main class="admin-main">
@@ -921,6 +1033,28 @@
                 </table>
             </div>
         </div>
+
+        <div id="passwordModal" class="confirm-modal-overlay">
+            <div class="confirm-modal" style="max-width: 420px; text-align: left;">
+                <h3 style="margin-bottom: 4px; color: #212529;">Change Password</h3>
+                <p style="color: #868e96; margin-bottom: 20px; font-size: 0.9rem;">Update your admin account password</p>
+                <form id="changePasswordForm">
+                    <div class="input-group" style="margin-bottom: 14px;">
+                        <label for="currentPassword" style="display:block; margin-bottom:6px; font-weight:600; font-size:0.8rem; color:#495057; text-transform:uppercase; letter-spacing:0.5px;">Current Password</label>
+                        <input type="password" id="currentPassword" placeholder="Enter current password" required style="width:100%; padding:10px 14px; border:2px solid #e9ecef; border-radius:10px; font-size:15px; box-sizing:border-box;" />
+                    </div>
+                    <div class="input-group" style="margin-bottom: 18px;">
+                        <label for="newPassword" style="display:block; margin-bottom:6px; font-weight:600; font-size:0.8rem; color:#495057; text-transform:uppercase; letter-spacing:0.5px;">New Password</label>
+                        <input type="password" id="newPassword" placeholder="Min. 6 characters" required minlength="6" style="width:100%; padding:10px 14px; border:2px solid #e9ecef; border-radius:10px; font-size:15px; box-sizing:border-box;" />
+                    </div>
+                    <div style="display:flex; gap:10px; justify-content:flex-end;">
+                        <button type="button" class="btn-sm" id="cancelPasswordBtn" style="background:#e9ecef; color:#495057; border:none; padding:8px 18px; border-radius:8px; cursor:pointer; font-weight:600;">Cancel</button>
+                        <button type="submit" class="btn-add" id="savePasswordBtn" style="margin-bottom:0;"><i class="fas fa-save"></i> Update Password</button>
+                    </div>
+                    <div id="passwordStatus" style="margin-top:12px; font-size:14px; display:none;"></div>
+                </form>
+            </div>
+        </div>
         <footer style="text-align: center; padding: 24px; color: var(--gray-500); font-size: 0.9rem; border-top: 1px solid var(--gray-200); margin-top: 40px;">
             If you have a problem with this system, <a href="https://mugisha-aime-kevin.web.app/" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">click here to contact a developer</a>.
         </footer>
@@ -1002,7 +1136,11 @@
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value;
             const errorEl = document.getElementById('loginError');
+            const btn = document.getElementById('loginBtn');
+            const btnText = document.getElementById('loginBtnText');
             errorEl.textContent = '';
+            btn.disabled = true;
+            btnText.textContent = 'Signing in...';
             try {
                 const data = await apiFetch('/auth/login', {
                     method: 'POST',
@@ -1015,12 +1153,51 @@
                 }
             } catch (err) {
                 errorEl.textContent = err.message || 'Login failed';
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = 'Sign In';
             }
         }
 
         function logout() {
             localStorage.removeItem('serveRateToken');
             showLogin();
+        }
+
+        function showPasswordModal() {
+            document.getElementById('passwordModal').classList.add('active');
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('passwordStatus').style.display = 'none';
+        }
+
+        function hidePasswordModal() {
+            document.getElementById('passwordModal').classList.remove('active');
+        }
+
+        async function changePassword(e) {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const statusEl = document.getElementById('passwordStatus');
+            const btn = document.getElementById('savePasswordBtn');
+            statusEl.style.display = 'none';
+            btn.disabled = true;
+            try {
+                await apiFetch('/auth/change-password', {
+                    method: 'POST',
+                    body: JSON.stringify({ oldPassword: currentPassword, newPassword }),
+                });
+                statusEl.style.color = '#00b894';
+                statusEl.textContent = 'Password updated successfully!';
+                document.getElementById('changePasswordForm').reset();
+                setTimeout(hidePasswordModal, 1500);
+            } catch (err) {
+                statusEl.style.color = '#e17055';
+                statusEl.textContent = err.message || 'Failed to update password';
+            } finally {
+                btn.disabled = false;
+            }
         }
 
         async function checkAuth() {
@@ -1039,12 +1216,18 @@
             }
         }
 
-        document.getElementById('loginBtn').addEventListener('click', login);
-        document.getElementById('loginPassword').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') login();
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            login();
         });
         document.getElementById('logoutBtn').addEventListener('click', () => {
             logout();
+        });
+        document.getElementById('changePasswordNav').addEventListener('click', showPasswordModal);
+        document.getElementById('cancelPasswordBtn').addEventListener('click', hidePasswordModal);
+        document.getElementById('changePasswordForm').addEventListener('submit', changePassword);
+        document.getElementById('passwordModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('passwordModal')) hidePasswordModal();
         });
 
         checkAuth();
