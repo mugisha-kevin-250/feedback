@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ServeRate - Admin Dashboard</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --primary: #6c5ce7;
+            --primary-dark: #5a4bd1;
+            --primary-light: #a29bfe;
+            --gray-50: #f8f9fa;
+            --gray-100: #f1f3f5;
+            --gray-200: #e9ecef;
+            --gray-300: #dee2e6;
+            --gray-400: #ced4da;
+            --gray-500: #adb5bd;
+            --gray-600: #868e96;
+            --gray-700: #495057;
+            --gray-800: #343a40;
+            --gray-900: #212529;
+            --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.16);
+            --radius: 16px;
+            --radius-sm: 8px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .admin-page {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        .admin-sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 20px;
+        }
+
+        .admin-sidebar .page-header {
+            margin-bottom: 20px;
+        }
+
+        .admin-sidebar .page-header h1 {
+            font-size: 1.4rem;
+        }
+
+        .admin-sidebar .logout-btn {
+            width: 100%;
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .admin-sidebar .tabs {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .admin-sidebar .tabs button {
+            background: white;
+            border: 1px solid var(--gray-200);
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: 0.1s;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        .admin-sidebar .tabs button.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(108, 92, 231, 0.25);
+        }
+
+        .admin-sidebar .tabs button:hover {
+            background: var(--gray-100);
+            color: var(--gray-800);
+        }
+
+        .admin-sidebar .tabs button.active:hover {
+            background: var(--primary-dark);
+            color: white;
+        }
+
+        .admin-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .page-header h1 .logo {
+            color: var(--primary);
+        }
+
+        .logout-btn {
+            background: var(--gray-100);
+            border: 2px solid var(--gray-300);
+            color: var(--gray-700);
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .logout-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #edf2f7;
+            padding-bottom: 12px;
+        }
+
+        .tabs button {
+            background: transparent;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: 0.1s;
+        }
+
+        .tabs button.active {
+            background: #eef2ff;
+            color: var(--primary);
+        }
+
+        .tabs button:hover {
+            background: #f1f4f9;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-item strong {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-item .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* Tables */
+        .table-wrapper {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: var(--gray-700);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge {
+            background: #eef2ff;
+            padding: 2px 12px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-sm {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 4px 14px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: 0.1s;
+        }
+
+        .btn-sm:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-sm.danger {
+            background: #ef4444;
+        }
+
+        .btn-sm.danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-sm.success {
+            background: #22c55e;
+        }
+
+        .btn-sm.success:hover {
+            background: #16a34a;
+        }
+
+        .btn-add {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-add:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        /* Recent feedback card */
+        .recent-card {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .recent-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 12px;
+        }
+
+        .recent-list {
+            list-style: none;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+
+        .recent-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #edf2f7;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .recent-list li:last-child {
+            border-bottom: none;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 360px;
+            width: 100%;
+        }
+
+        .toast {
+            padding: 14px 20px;
+            border-radius: var(--radius-sm);
+            background: var(--gray-900);
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast-error {
+            background: #e17055;
+        }
+
+        .toast-success {
+            background: #00b894;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Confirm Modal */
+        .confirm-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        .confirm-modal-overlay.active {
+            display: flex;
+        }
+        .confirm-modal {
+            background: white;
+            padding: 28px 32px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+        }
+        .confirm-modal p {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 20px;
+        }
+        .confirm-modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        @media (max-width: 600px) {
+            .admin-page { padding: 0 10px; }
+            .page-header { flex-direction: column; gap: 12px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .stat-item .value { font-size: 1.5rem; }
+            th, td { padding: 8px 12px; font-size: 0.8rem; }
+        }
+
+        /* Chatbot Styles */
+        .chatbot-fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(108, 92, 231, 0.4);
+            transition: all 0.3s ease;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chatbot-fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 32px rgba(108, 92, 231, 0.5);
+        }
+        .chatbot-fab.open {
+            transform: rotate(45deg);
+        }
+
+        .chatbot-panel {
+            position: fixed;
+            bottom: 96px;
+            right: 24px;
+            width: 380px;
+            max-height: 560px;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+            z-index: 9998;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid var(--gray-200);
+        }
+        .chatbot-panel.open {
+            display: flex;
+        }
+
+        .chatbot-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chatbot-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chatbot-header .close-chatbot {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+        .chatbot-header .close-chatbot:hover {
+            background: rgba(255,255,255,0.35);
+        }
+
+        .chatbot-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            max-height: 320px;
+            min-height: 200px;
+            background: #fafbff;
+        }
+        .chatbot-message {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            max-width: 85%;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .chatbot-message.bot {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-bottom-left-radius: 4px;
+            align-self: flex-start;
+            margin-right: auto;
+        }
+        .chatbot-message.user {
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+            margin-left: auto;
+        }
+
+        .chatbot-actions {
+            padding: 12px 16px;
+            border-top: 1px solid var(--gray-200);
+            background: white;
+            max-height: 140px;
+            overflow-y: auto;
+        }
+        .chatbot-actions-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .chatbot-chip {
+            display: inline-block;
+            padding: 6px 14px;
+            margin: 4px 4px;
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .chatbot-chip:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+        .chatbot-chip.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .chatbot-status {
+            padding: 6px 16px;
+            background: #f8fafc;
+            border-top: 1px solid var(--gray-200);
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chatbot-status .live-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            margin-right: 4px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .chatbot-stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .chatbot-stat-item {
+            background: var(--gray-50);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .chatbot-stat-item strong {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            text-transform: uppercase;
+        }
+        .chatbot-stat-item span {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .chatbot-list {
+            list-style: none;
+            padding: 0;
+            margin: 8px 0;
+        }
+        .chatbot-list li {
+            padding: 6px 0;
+            border-bottom: 1px solid var(--gray-100);
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .chatbot-list li:last-child {
+            border-bottom: none;
+        }
+
+        @media (max-width: 768px) {
+            .admin-page {
+                flex-direction: column;
+            }
+            .admin-sidebar {
+                width: 100%;
+                position: static;
+            }
+            .admin-sidebar .tabs {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+            .admin-sidebar .tabs button {
+                text-align: center;
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .chatbot-panel {
+                width: calc(100vw - 48px);
+                right: 24px;
+                bottom: 96px;
+                max-height: 480px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-page">
+        <aside class="admin-sidebar">
+            <div class="page-header">
+                <h1><span class="logo">Serve</span>Rate</h1>
+                <button class="logout-btn" id="logoutBtn">Logout</button>
+            </div>
+            <div class="tabs" id="adminTabs">
+                <button class="active" data-tab="tabDashboard">Dashboard</button>
+                <button data-tab="tabServers">Servers</button>
+                <button data-tab="tabQuestions">Questions</button>
+                <button data-tab="tabFeedback">Feedback</button>
+                <button data-tab="tabCustomers">Customers</button>
+                <button data-tab="tabAnnouncements">Announcements</button>
+                <button data-tab="tabReports">Reports</button>
+            </div>
+        </aside>
+        <main class="admin-main">
+            <!-- Tab Content -->
+            <div id="tabDashboard" class="tab-content active">
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-item"><strong>Total Feedback</strong><div class="value" id="totalFeedback">0</div></div>
+                    <div class="stat-item"><strong>Restaurant Rating</strong><div class="value" id="avgRest">⭐ 0</div></div>
+                <div class="stat-item"><strong>Server Rating</strong><div class="value" id="avgServer">⭐ 0</div></div>
+                <div class="stat-item"><strong>Today's Feedback</strong><div class="value" id="todayFeedback">0</div></div>
+                <div class="stat-item"><strong>Positive</strong><div class="value" id="positivePct">0%</div></div>
+                <div class="stat-item"><strong>Negative</strong><div class="value" id="negativePct">0%</div></div>
+            </div>
+            <div class="recent-card">
+                <h3>Recent Feedback</h3>
+                <ul class="recent-list" id="recentFeedback"></ul>
+            </div>
+        </div>
+
+        <div id="tabServers" class="tab-content">
+            <button class="btn-add" id="addServerBtn"><i class="fas fa-plus"></i> Add Server</button>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Rank</th><th>Name</th><th>Employee ID</th><th>Phone</th><th>Status</th><th>Rating</th><th>Actions</th></tr></thead>
+                    <tbody id="serversTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tabQuestions" class="tab-content">
+            <button class="btn-add" id="addQuestionBtn"><i class="fas fa-plus"></i> Add Question</button>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Text</th><th>Category</th><th>Type</th><th>Active</th><th>Required</th><th>Order</th><th>Actions</th></tr></thead>
+                    <tbody id="questionsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+         <div id="tabFeedback" class="tab-content">
+             <div class="table-wrapper">
+                 <table>
+                     <thead><tr><th>Server</th><th>Overall</th><th>Server Rating</th><th>Comment</th><th>Date</th></tr></thead>
+                     <tbody id="feedbackTableBody"></tbody>
+                 </table>
+             </div>
+         </div>
+
+         <div id="tabCustomers" class="tab-content">
+             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                 <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--gray-800);">Customer List</h3>
+                 <button class="btn-add" id="downloadCsvBtn"><i class="fas fa-download"></i> Download CSV</button>
+             </div>
+             <div class="table-wrapper">
+                 <table>
+                     <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Date Added</th></tr></thead>
+                     <tbody id="customersTableBody"></tbody>
+                 </table>
+             </div>
+         </div>
+
+          <div id="tabAnnouncements" class="tab-content">
+              <div class="recent-card" style="max-width: 600px; margin-bottom: 24px;">
+                  <h3>Send Announcement to All Customers</h3>
+                  <form id="announcementForm" style="margin-top: 16px;">
+                      <div class="form-group" style="margin-bottom: 16px;">
+                          <label style="display: block; font-weight: 600; font-size: 13px; color: var(--gray-700); margin-bottom: 6px;">Subject</label>
+                          <input type="text" id="announcementSubject" placeholder="e.g. Special Event This Weekend!" required style="padding: 10px 14px; border: 2px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 15px; width: 100%;" />
+                      </div>
+                      <div class="form-group" style="margin-bottom: 16px;">
+                          <label style="display: block; font-weight: 600; font-size: 13px; color: var(--gray-700); margin-bottom: 6px;">Message</label>
+                          <textarea id="announcementBody" rows="6" placeholder="Write your announcement here..." required style="padding: 10px 14px; border: 2px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 15px; width: 100%; resize: vertical;"></textarea>
+                      </div>
+                      <button type="submit" class="btn-add" id="sendAnnouncementBtn"><i class="fas fa-paper-plane"></i> Send to All Customers</button>
+                      <div id="announcementStatus" style="margin-top: 12px; font-size: 14px; display: none;"></div>
+                  </form>
+              </div>
+
+               <div class="recent-card" style="max-width: 600px;">
+                   <h3>Email Configuration</h3>
+                   <form id="emailSettingsForm" style="margin-top: 16px;">
+                       <div class="form-group" style="margin-bottom: 12px;">
+                           <label style="display: block; font-weight: 600; font-size: 13px; color: var(--gray-700); margin-bottom: 6px;">SMTP Host</label>
+                           <input type="text" id="emailHost" placeholder="smtp.gmail.com" style="padding: 10px 14px; border: 2px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 15px; width: 100%;" />
+                       </div>
+                       <div class="form-group" style="margin-bottom: 12px;">
+                           <label style="display: block; font-weight: 600; font-size: 13px; color: var(--gray-700); margin-bottom: 6px;">SMTP Port</label>
+                           <input type="number" id="emailPort" placeholder="587" value="587" style="padding: 10px 14px; border: 2px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 15px; width: 100%;" />
+                       </div>
+                       <div class="form-group" style="margin-bottom: 12px;">
+                           <label style="display: block; font-weight: 600; font-size: 13px; color: var(--gray-700); margin-bottom: 6px;">Email User</label>
+                           <input type="email" id="emailUser" placeholder="your@email.com" style="padding: 10px 14px; border: 2px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 15px; width: 100%;" />
+                       </div>
+                       <div class="form-group" style="margin-bottom: 12px;">
+                           <label style="display: block; font-weight: 600; font-size: 13px; color: var(--gray-700); margin-bottom: 6px;">Email Password / App Password</label>
+                           <input type="password" id="emailPass" placeholder="Your app password" style="padding: 10px 14px; border: 2px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 15px; width: 100%;" />
+                       </div>
+                       <div class="form-group" style="margin-bottom: 12px;">
+                           <label style="display: block; font-weight: 600; font-size: 13px; color: var(--gray-700); margin-bottom: 6px;">From Address</label>
+                           <input type="email" id="emailFrom" placeholder="noreply@restaurant.com" style="padding: 10px 14px; border: 2px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 15px; width: 100%;" />
+                       </div>
+                        <button type="submit" class="btn-add" id="saveEmailSettingsBtn"><i class="fas fa-save"></i> Update Email Settings</button>
+                       <div id="emailSettingsStatus" style="margin-top: 12px; font-size: 14px; display: none;"></div>
+                       <div style="margin-top: 16px; padding: 12px; background: #f8fafc; border-radius: var(--radius-sm); font-size: 0.85rem; color: var(--gray-600);">
+                           <strong>Gmail users:</strong> Google no longer accepts regular passwords. Enable 2-Step Verification on your Google account, then generate an <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color: var(--primary);">App Password</a> and paste it in the "Email Password" field above.
+                       </div>
+                   </form>
+                </div>
+            </div>
+
+        <div id="tabReports" class="tab-content">
+            <div class="stats-grid" id="reportStats" style="margin-bottom: 24px;">
+                <div class="stat-item"><strong>Total Feedback</strong><div class="value" id="reportTotal">0</div></div>
+                <div class="stat-item"><strong>Avg Restaurant</strong><div class="value" id="reportAvgRest">⭐ 0</div></div>
+                <div class="stat-item"><strong>Avg Server</strong><div class="value" id="reportAvgServer">⭐ 0</div></div>
+            </div>
+
+            <div class="recent-card">
+                <h3>Server Performance</h3>
+                <table>
+                    <thead><tr><th>Server</th><th>Reviews</th><th>Avg Rating</th></tr></thead>
+                    <tbody id="serverRankings"></tbody>
+                </table>
+            </div>
+
+            <div class="recent-card">
+                <h3>Category Performance</h3>
+                <table>
+                    <thead><tr><th>Category</th><th>Avg Rating</th><th>Responses</th></tr></thead>
+                    <tbody id="categoryRatings"></tbody>
+                </table>
+            </div>
+        </div>
+        <footer style="text-align: center; padding: 24px; color: var(--gray-500); font-size: 0.9rem; border-top: 1px solid var(--gray-200); margin-top: 40px;">
+            If you have a problem with this system, <a href="https://mugisha-aime-kevin.web.app/" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">click here to contact a developer</a>.
+        </footer>
+    </main>
+    </div>
+
+    <div id="confirmModal" class="confirm-modal-overlay">
+        <div class="confirm-modal">
+            <p id="confirmModalMessage">Are you sure?</p>
+            <div class="confirm-modal-actions">
+                <button class="btn-sm" id="confirmModalCancel">Cancel</button>
+                <button class="btn-sm danger" id="confirmModalConfirm">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="inputModal" class="confirm-modal-overlay">
+        <div class="confirm-modal">
+            <p id="inputModalMessage">Enter value</p>
+            <input type="text" id="inputModalField" style="width: 100%; padding: 10px 14px; border: 2px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 1rem; margin-bottom: 16px;" />
+            <div class="confirm-modal-actions">
+                <button class="btn-sm" id="inputModalCancel">Cancel</button>
+                <button class="btn-sm" id="inputModalConfirm">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="alertModal" class="confirm-modal-overlay">
+        <div class="confirm-modal">
+            <p id="alertModalMessage">Alert</p>
+            <div class="confirm-modal-actions">
+                <button class="btn-sm" id="alertModalConfirm">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script>
+        const API_BASE = '/api';
+
+        async function apiFetch(endpoint, options) {
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                ...options
+            };
+            const res = await fetch(`${API_BASE}${endpoint}`, config);
+            const data = await res.json().catch(() => ({ error: 'Invalid response' }));
+            if (!res.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
+            return data;
+        }
+
+        function showToast(message, type) {
+            if (type === undefined) type = 'info';
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast toast-' + type;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(40px)';
+                toast.style.transition = '0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        let confirmModalResolve = null;
+        function showConfirmModal(message, confirmText) {
+            return new Promise((resolve) => {
+                confirmModalResolve = resolve;
+                document.getElementById('confirmModalMessage').textContent = message;
+                const confirmBtn = document.getElementById('confirmModalConfirm');
+                confirmBtn.textContent = confirmText || 'Confirm';
+                document.getElementById('confirmModal').classList.add('active');
+            });
+        }
+
+        document.getElementById('confirmModalCancel').addEventListener('click', () => {
+            document.getElementById('confirmModal').classList.remove('active');
+            if (confirmModalResolve) { confirmModalResolve(false); confirmModalResolve = null; }
+        });
+
+        document.getElementById('confirmModalConfirm').addEventListener('click', () => {
+            document.getElementById('confirmModal').classList.remove('active');
+            if (confirmModalResolve) { confirmModalResolve(true); confirmModalResolve = null; }
+        });
+
+        let inputModalResolve = null;
+        function showInputModal(message, defaultValue) {
+            return new Promise((resolve) => {
+                inputModalResolve = resolve;
+                document.getElementById('inputModalMessage').textContent = message;
+                const field = document.getElementById('inputModalField');
+                field.value = defaultValue || '';
+                document.getElementById('inputModal').classList.add('active');
+                setTimeout(() => field.focus(), 50);
+            });
+        }
+
+        document.getElementById('inputModalCancel').addEventListener('click', () => {
+            document.getElementById('inputModal').classList.remove('active');
+            if (inputModalResolve) { inputModalResolve(null); inputModalResolve = null; }
+        });
+
+        document.getElementById('inputModalConfirm').addEventListener('click', () => {
+            const field = document.getElementById('inputModalField');
+            const value = field.value.trim();
+            document.getElementById('inputModal').classList.remove('active');
+            if (inputModalResolve) { inputModalResolve(value || null); inputModalResolve = null; }
+        });
+
+        document.getElementById('inputModalField').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('inputModalConfirm').click();
+            } else if (e.key === 'Escape') {
+                document.getElementById('inputModalCancel').click();
+            }
+        });
+
+        let alertModalResolve = null;
+        function showAlertModal(message) {
+            return new Promise((resolve) => {
+                alertModalResolve = resolve;
+                document.getElementById('alertModalMessage').textContent = message;
+                document.getElementById('alertModal').classList.add('active');
+            });
+        }
+
+        document.getElementById('alertModalConfirm').addEventListener('click', () => {
+            document.getElementById('alertModal').classList.remove('active');
+            if (alertModalResolve) { alertModalResolve(true); alertModalResolve = null; }
+        });
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Init admin
+        (async function initAdmin() {
+            setupTabs();
+            renderTab('tabDashboard');
+        })();
+
+        // Tab switching
+        function setupTabs() {
+            document.querySelectorAll('#adminTabs button[data-tab]').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('#adminTabs button[data-tab]').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    document.getElementById(this.dataset.tab).classList.add('active');
+                    renderTab(this.dataset.tab);
+                });
+            });
+        }
+
+        async function renderTab(tabId) {
+            const container = document.getElementById(tabId);
+            if (!container) return;
+            try {
+                if (tabId === 'tabDashboard') await renderDashboard();
+                else if (tabId === 'tabServers') await renderServers();
+                else if (tabId === 'tabQuestions') await renderQuestions();
+                else if (tabId === 'tabFeedback') await renderFeedback();
+                else if (tabId === 'tabCustomers') await renderCustomers();
+                else if (tabId === 'tabAnnouncements') await renderAnnouncements();
+                else if (tabId === 'tabReports') await renderReports();
+            } catch (err) {
+                showToast(err.message || 'Failed to load data', 'error');
+            }
+        }
+
+        // ---- Dashboard ----
+        async function renderDashboard() {
+            const data = await apiFetch('/analytics/dashboard');
+            document.getElementById('totalFeedback').textContent = data.totalFeedback || 0;
+            document.getElementById('avgRest').textContent = '⭐ ' + (data.avgRestaurantRating || 0).toFixed(1);
+            document.getElementById('avgServer').textContent = '⭐ ' + (data.avgServerRating || 0).toFixed(1);
+            document.getElementById('todayFeedback').textContent = data.todayFeedback || 0;
+            document.getElementById('positivePct').textContent = (data.positivePercentage || 0) + '%';
+            document.getElementById('negativePct').textContent = (data.negativePercentage || 0) + '%';
+
+            const recent = document.getElementById('recentFeedback');
+            recent.innerHTML = (data.recentFeedback || []).slice(0, 5).map(f =>
+                `<li><span>${escapeHtml(f.serverName || 'Unknown')}</span><span>⭐ ${f.overallRating || 0} · ${new Date(f.createdAt).toLocaleString()}</span></li>`
+            ).join('');
+            if ((data.recentFeedback || []).length === 0) {
+                recent.innerHTML = '<li>No recent feedback</li>';
+            }
+        }
+
+        // ---- Servers ----
+        let serversData = [];
+        async function renderServers() {
+            const servers = await apiFetch('/servers');
+            serversData = servers;
+            const tbody = document.getElementById('serversTableBody');
+            tbody.innerHTML = servers.map((s, idx) => {
+                const avg = s.avgRating || 0;
+                const fullStars = Math.floor(avg);
+                const halfStar = avg - fullStars >= 0.5;
+                let starsHtml = '';
+                for (let i = 1; i <= 5; i++) {
+                    if (i <= fullStars) starsHtml += '★';
+                    else if (i === fullStars + 1 && halfStar) starsHtml += '★';
+                    else starsHtml += '☆';
+                }
+                return `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td>${escapeHtml(s.name)}</td>
+                    <td>${escapeHtml(s.employeeId || '')}</td>
+                    <td>${escapeHtml(s.phone || '')}</td>
+                    <td><span class="badge">${s.status}</span></td>
+                    <td style="color: #fbbf24; font-size: 1.1rem;">${starsHtml} <span style="color: #64748b; font-size: 0.85rem;">(${avg > 0 ? avg.toFixed(1) : '0'})</span></td>
+                    <td class="actions-cell">
+                        <button class="btn-sm" onclick="editServer('${s.id}')">Edit</button>
+                        <button class="btn-sm ${s.status === 'active' ? 'danger' : 'success'}" onclick="toggleServer('${s.id}')">${s.status === 'active' ? 'Deactivate' : 'Activate'}</button>
+                        <button class="btn-sm danger" onclick="deleteServer('${s.id}')">Delete</button>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        window.editServer = async (id) => {
+            const s = serversData.find(s => s.id === id);
+            if (!s) return;
+            const name = await showInputModal('Edit server name', s.name);
+            if (name) {
+                await apiFetch(`/servers/${id}`, { method: 'PUT', body: JSON.stringify({ name }) });
+                showToast('Server updated', 'success');
+                renderServers();
+            }
+        };
+
+        window.toggleServer = async (id) => {
+            const s = serversData.find(s => s.id === id);
+            if (s) {
+                const newStatus = s.status === 'active' ? 'inactive' : 'active';
+                await apiFetch(`/servers/${id}`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
+                showToast('Server status updated', 'success');
+                renderServers();
+            }
+        };
+
+        window.deleteServer = async (id) => {
+            const confirmed = await showConfirmModal('Delete this server?');
+            if (confirmed) {
+                await apiFetch(`/servers/${id}`, { method: 'DELETE' });
+                showToast('Server deleted', 'success');
+                renderServers();
+            }
+        };
+
+        document.getElementById('addServerBtn').addEventListener('click', async () => {
+            const name = await showInputModal('Server name');
+            if (name) {
+                await apiFetch('/servers', { method: 'POST', body: JSON.stringify({ name }) });
+                showToast('Server created', 'success');
+                renderServers();
+            }
+        });
+
+        // ---- Questions ----
+        let questionsData = [];
+        async function renderQuestions() {
+            const questions = await apiFetch('/questions');
+            questionsData = questions;
+            const tbody = document.getElementById('questionsTableBody');
+            tbody.innerHTML = questions.sort((a, b) => (a.display_order || 0) - (b.display_order || 0)).map(q => `
+                <tr>
+                    <td>${escapeHtml(q.text)}</td>
+                    <td>${escapeHtml(q.category || 'General')}</td>
+                    <td>${escapeHtml(q.type)}</td>
+                    <td>${q.active ? '✅' : '❌'}</td>
+                    <td>${q.required ? 'Yes' : 'No'}</td>
+                    <td>${q.display_order || 0}</td>
+                    <td class="actions-cell">
+                        <button class="btn-sm" onclick="editQuestion('${q.id}')">Edit</button>
+                        <button class="btn-sm ${q.active ? 'danger' : 'success'}" onclick="toggleQuestion('${q.id}')">${q.active ? 'Deactivate' : 'Activate'}</button>
+                        <button class="btn-sm danger" onclick="deleteQuestion('${q.id}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        window.editQuestion = async (id) => {
+            const q = questionsData.find(q => q.id === id);
+            if (!q) return;
+            const text = await showInputModal('Edit question text', q.text);
+            if (text) {
+                await apiFetch(`/questions/${id}`, { method: 'PUT', body: JSON.stringify({ text }) });
+                showToast('Question updated', 'success');
+                renderQuestions();
+            }
+        };
+
+        window.toggleQuestion = async (id) => {
+            const q = questionsData.find(q => q.id === id);
+            if (q) {
+                await apiFetch(`/questions/${id}`, { method: 'PUT', body: JSON.stringify({ active: !q.active }) });
+                showToast('Question status updated', 'success');
+                renderQuestions();
+            }
+        };
+
+        window.deleteQuestion = async (id) => {
+            const confirmed = await showConfirmModal('Delete this question?');
+            if (confirmed) {
+                await apiFetch(`/questions/${id}`, { method: 'DELETE' });
+                showToast('Question deleted', 'success');
+                renderQuestions();
+            }
+        };
+
+        document.getElementById('addQuestionBtn').addEventListener('click', async () => {
+            const text = await showInputModal('Question text');
+            if (!text) return;
+            const type = await showInputModal('Type (star, yes_no, multiple_choice, text)', 'star');
+            if (!type) return;
+            const category = await showInputModal('Category', 'General');
+            if (!category) return;
+            const required = await showConfirmModal('Is this question required?', 'Yes');
+            await apiFetch('/questions', {
+                method: 'POST',
+                body: JSON.stringify({
+                    text, type, category, required, active: true,
+                    options: type === 'multiple_choice' ? ['Option 1', 'Option 2', 'Option 3'] : []
+                })
+            });
+            showToast('Question created', 'success');
+            renderQuestions();
+        });
+
+        // ---- Feedback ----
+        async function renderFeedback() {
+            const data = await apiFetch('/feedback');
+            const items = data.items || [];
+            const tbody = document.getElementById('feedbackTableBody');
+            tbody.innerHTML = items.map(f => `
+                <tr>
+                    <td>${escapeHtml(f.serverName || 'Unknown')}</td>
+                    <td>⭐ ${f.overallRating || 0}</td>
+                    <td>⭐ ${f.serverRating || 0}</td>
+                    <td>${escapeHtml(f.comment || '-')}</td>
+                    <td>${new Date(f.createdAt).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No feedback found</td></tr>';
+            }
+        }
+
+        // ---- Reports ----
+        async function renderReports() {
+            const data = await apiFetch('/analytics/reports');
+            document.getElementById('reportTotal').textContent = data.totalFeedback || 0;
+            document.getElementById('reportAvgRest').textContent = '⭐ ' + (data.avgRestaurantRating || 0).toFixed(1);
+            document.getElementById('reportAvgServer').textContent = '⭐ ' + (data.avgServerRating || 0).toFixed(1);
+
+            const sr = document.getElementById('serverRankings');
+            sr.innerHTML = (data.serverRankings || []).map(s => `
+                <tr><td>${escapeHtml(s.name)}</td><td>${s.count}</td><td>${(s.avgRating || 0).toFixed(1)}</td></tr>
+            `).join('');
+            if ((data.serverRankings || []).length === 0) {
+                sr.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#999;">No server data</td></tr>';
+            }
+
+            const cr = document.getElementById('categoryRatings');
+            cr.innerHTML = (data.categoryRatings || []).map(c => `
+                <tr><td>${escapeHtml(c.category || 'Uncategorized')}</td><td>${(c.avgRating || 0).toFixed(1)}</td><td>${c.count}</td></tr>
+            `).join('');
+            if ((data.categoryRatings || []).length === 0) {
+                cr.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#999;">No category data</td></tr>';
+            }
+        }
+
+        // ---- Customers ----
+        async function renderCustomers() {
+            const customers = await apiFetch('/customers');
+            const tbody = document.getElementById('customersTableBody');
+            tbody.innerHTML = customers.map(c => `
+                <tr>
+                    <td>${escapeHtml(c.name || '')}</td>
+                    <td>${escapeHtml(c.email || '')}</td>
+                    <td>${escapeHtml(c.phone || '')}</td>
+                    <td>${new Date(c.createdAt).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+            if (customers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999;">No customers found</td></tr>';
+            }
+        }
+
+        document.getElementById('downloadCsvBtn').addEventListener('click', async () => {
+            try {
+                const res = await fetch('/api/customers/download');
+                if (!res.ok) throw new Error('Download failed');
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'customers.csv';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                showToast('CSV downloaded successfully', 'success');
+            } catch (err) {
+                showToast(err.message || 'Failed to download CSV', 'error');
+            }
+        });
+
+        // ---- Announcements ----
+        async function renderAnnouncements() {
+            // Placeholder if needed
+        }
+
+        document.getElementById('announcementForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const subject = document.getElementById('announcementSubject').value.trim();
+            const body = document.getElementById('announcementBody').value.trim();
+            const statusEl = document.getElementById('announcementStatus');
+            const btn = document.getElementById('sendAnnouncementBtn');
+
+            if (!subject || !body) {
+                showToast('Please fill in both subject and message', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Sending...';
+            statusEl.style.display = 'none';
+
+            try {
+                const data = await apiFetch('/email/send-announcement', {
+                    method: 'POST',
+                    body: JSON.stringify({ subject, body })
+                });
+                statusEl.textContent = data.message || 'Announcement sent!';
+                statusEl.style.color = '#00b894';
+                statusEl.style.display = 'block';
+                showToast(data.message || 'Announcement sent!', 'success');
+                document.getElementById('announcementForm').reset();
+            } catch (err) {
+                statusEl.textContent = err.message || 'Failed to send announcement';
+                statusEl.style.color = '#e17055';
+                statusEl.style.display = 'block';
+                showToast(err.message || 'Failed to send announcement', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send to All Customers';
+            }
+        });
+
+        // ---- Back to customer portal ----
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            window.location.href = '/';
+        });
+
+        // =============================================
+        // EMAIL SETTINGS
+        // =============================================
+        function saveEmailSettingsToStorage(settings) {
+            try {
+                localStorage.setItem('serveRateEmailSettings', JSON.stringify(settings));
+            } catch (e) {
+                console.error('Failed to save email settings to localStorage:', e);
+            }
+        }
+
+        function loadEmailSettingsFromStorage() {
+            try {
+                const stored = localStorage.getItem('serveRateEmailSettings');
+                return stored ? JSON.parse(stored) : null;
+            } catch (e) {
+                console.error('Failed to load email settings from localStorage:', e);
+                return null;
+            }
+        }
+
+        (async function loadEmailSettings() {
+            try {
+                const localSettings = loadEmailSettingsFromStorage();
+                if (localSettings) {
+                    document.getElementById('emailHost').value = localSettings.email_host || '';
+                    document.getElementById('emailPort').value = localSettings.email_port || 587;
+                    document.getElementById('emailUser').value = localSettings.email_user || '';
+                    document.getElementById('emailPass').value = localSettings.email_pass || '';
+                    document.getElementById('emailFrom').value = localSettings.email_from || '';
+                }
+
+                const settings = await apiFetch('/settings');
+                if (settings) {
+                    document.getElementById('emailHost').value = settings.email_host || '';
+                    document.getElementById('emailPort').value = settings.email_port || 587;
+                    document.getElementById('emailUser').value = settings.email_user || '';
+                    document.getElementById('emailPass').value = settings.email_pass || '';
+                    document.getElementById('emailFrom').value = settings.email_from || '';
+                    saveEmailSettingsToStorage({
+                        email_host: settings.email_host || '',
+                        email_port: settings.email_port || 587,
+                        email_user: settings.email_user || '',
+                        email_pass: settings.email_pass || '',
+                        email_from: settings.email_from || ''
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to load email settings:', err);
+                const localSettings = loadEmailSettingsFromStorage();
+                if (localSettings) {
+                    document.getElementById('emailHost').value = localSettings.email_host || '';
+                    document.getElementById('emailPort').value = localSettings.email_port || 587;
+                    document.getElementById('emailUser').value = localSettings.email_user || '';
+                    document.getElementById('emailPass').value = localSettings.email_pass || '';
+                    document.getElementById('emailFrom').value = localSettings.email_from || '';
+                }
+            }
+        })();
+
+        document.getElementById('emailSettingsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('saveEmailSettingsBtn');
+            const statusEl = document.getElementById('emailSettingsStatus');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Updating...';
+            statusEl.style.display = 'none';
+
+            const emailSettings = {
+                email_host: document.getElementById('emailHost').value.trim(),
+                email_port: document.getElementById('emailPort').value || 587,
+                email_user: document.getElementById('emailUser').value.trim(),
+                email_pass: document.getElementById('emailPass').value,
+                email_from: document.getElementById('emailFrom').value.trim()
+            };
+
+            try {
+                await apiFetch('/settings', {
+                    method: 'PUT',
+                    body: JSON.stringify(emailSettings)
+                });
+                saveEmailSettingsToStorage(emailSettings);
+                statusEl.textContent = 'Email settings updated successfully!';
+                statusEl.style.color = '#00b894';
+                statusEl.style.display = 'block';
+                showToast('Email settings updated', 'success');
+            } catch (err) {
+                statusEl.textContent = err.message || 'Failed to update email settings';
+                statusEl.style.color = '#e17055';
+                statusEl.style.display = 'block';
+                showToast(err.message || 'Failed to update email settings', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Update Email Settings';
+            }
+        });
+
+        // =============================================
+        // CHATBOT
+        // =============================================
+        const chatbotState = {
+            isOpen: false,
+            lastDataHash: null,
+            messages: [],
+            questions: [],
+            currentView: 'menu'
+        };
+
+        const questionExplanations = {
+            'How would you rate the food?': 'This measures overall food quality including taste, presentation, and temperature. Higher ratings indicate better kitchen performance.',
+            'How was the service?': 'Evaluates staff attentiveness, speed, and friendliness. Helps identify training needs and outstanding employees.',
+            'How clean was the restaurant?': 'Assesses dining area, restrooms, and overall hygiene. Critical for health compliance and customer comfort.',
+            'How was the waiting time?': 'Measures time from arrival to seating and order delivery. Long waits are a primary cause of negative reviews.',
+            'How was the atmosphere?': 'Covers ambiance, lighting, music, and comfort. Affects overall dining experience beyond just the food.',
+            'Would you recommend us?': 'A strong indicator of customer loyalty and overall satisfaction. High scores correlate with repeat business.',
+            'What did you like most?': 'Identifies your strongest selling points and what customers value most about your restaurant.',
+            'Additional comments': 'Captures specific feedback, complaints, or praise that may not fit into structured categories.'
+        };
+
+        function initChatbot() {
+            const fab = document.createElement('button');
+            fab.className = 'chatbot-fab';
+            fab.innerHTML = '<i class="fas fa-robot"></i>';
+            fab.title = 'ServeRate Assistant';
+            document.body.appendChild(fab);
+
+            const panel = document.createElement('div');
+            panel.className = 'chatbot-panel';
+            panel.innerHTML = `
+                <div class="chatbot-header">
+                    <h3><i class="fas fa-robot"></i> ServeRate Assistant</h3>
+                    <button class="close-chatbot" id="chatbotClose"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="chatbot-messages" id="chatbotMessages">
+                    <div class="chatbot-message bot">Hello! I'm your ServeRate assistant. Click a button below to explore statistics, learn about questions, or download reports.</div>
+                </div>
+                <div class="chatbot-actions" id="chatbotActions">
+                    <div class="chatbot-actions-title">Quick Actions</div>
+                    <span class="chatbot-chip" data-action="stats">Restaurant Rating Stats</span>
+                    <span class="chatbot-chip" data-action="servers">Server Performance</span>
+                    <span class="chatbot-chip" data-action="categories">Category Analysis</span>
+                    <span class="chatbot-chip" data-action="questions">Question Overview</span>
+                    <span class="chatbot-chip" data-action="pdf-full">Download Full Report PDF</span>
+                    <span class="chatbot-chip" data-action="pdf-servers">Download Server Report PDF</span>
+                    <span class="chatbot-chip" data-action="pdf-categories">Download Category Report PDF</span>
+                </div>
+                <div class="chatbot-status" id="chatbotStatus">
+                    <span><span class="live-dot"></span> Live tracking active</span>
+                    <span id="chatbotLastUpdate">Updated just now</span>
+                </div>
+            `;
+            document.body.appendChild(panel);
+
+            fab.addEventListener('click', () => {
+                chatbotState.isOpen = !chatbotState.isOpen;
+                panel.classList.toggle('open', chatbotState.isOpen);
+                fab.classList.toggle('open', chatbotState.isOpen);
+                if (chatbotState.isOpen) {
+                    refreshChatbotData();
+                }
+            });
+
+            document.getElementById('chatbotClose').addEventListener('click', () => {
+                chatbotState.isOpen = false;
+                panel.classList.remove('open');
+                fab.classList.remove('open');
+            });
+
+            panel.querySelectorAll('.chatbot-chip').forEach(chip => {
+                chip.addEventListener('click', () => handleChatbotAction(chip.dataset.action));
+            });
+
+            loadChatbotQuestions();
+            setInterval(refreshChatbotData, 30000);
+        }
+
+        function addChatbotMessage(text, type) {
+            const container = document.getElementById('chatbotMessages');
+            const msg = document.createElement('div');
+            msg.className = 'chatbot-message ' + type;
+            msg.innerHTML = text;
+            container.appendChild(msg);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function clearChatbotMessages() {
+            const container = document.getElementById('chatbotMessages');
+            container.innerHTML = '';
+        }
+
+        async function loadChatbotQuestions() {
+            try {
+                const questions = await apiFetch('/questions');
+                chatbotState.questions = questions.filter(q => q.active);
+            } catch (err) {
+                console.error('Failed to load questions for chatbot:', err);
+            }
+        }
+
+        async function refreshChatbotData() {
+            try {
+                const data = await apiFetch('/analytics/dashboard');
+                const hash = JSON.stringify(data);
+                if (chatbotState.lastDataHash !== hash) {
+                    chatbotState.lastDataHash = hash;
+                    const timeEl = document.getElementById('chatbotLastUpdate');
+                    if (timeEl) timeEl.textContent = 'Updated just now';
+                }
+            } catch (err) {
+                console.error('Chatbot data refresh failed:', err);
+            }
+        }
+
+        async function handleChatbotAction(action) {
+            const container = document.getElementById('chatbotMessages');
+            clearChatbotMessages();
+            addChatbotMessage('<strong>Analyzing data...</strong>', 'bot');
+
+            if (action === 'questions') {
+                await loadChatbotQuestions();
+                let html = '<strong>Active Questions Explained:</strong><br><br>';
+                chatbotState.questions.forEach((q, i) => {
+                    const explanation = questionExplanations[q.text] || 'This is a customer feedback question.';
+                    html += `<strong>${i + 1}. ${escapeHtml(q.text)}</strong><br>`;
+                    html += `<em>${escapeHtml(q.category)} | ${q.type} | ${q.required ? 'Required' : 'Optional'}</em><br>`;
+                    html += `${explanation}<br><br>`;
+                });
+                addChatbotMessage(html, 'bot');
+                return;
+            }
+
+            if (action.startsWith('pdf-')) {
+                const typeMap = { 'pdf-full': '/reports/download', 'pdf-servers': '/reports/servers/pdf', 'pdf-categories': '/reports/categories/pdf' };
+                const nameMap = { 'pdf-full': 'Full Report', 'pdf-servers': 'Server Report', 'pdf-categories': 'Category Report' };
+                addChatbotMessage(`Generating <strong>${nameMap[action]}</strong>... Your download should begin shortly.`, 'bot');
+                const a = document.createElement('a');
+                a.href = `${API_BASE}${typeMap[action]}`;
+                a.download = nameMap[action].replace(/\s+/g, '-').toLowerCase() + '.pdf';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => addChatbotMessage('Download started! Check your downloads folder.', 'bot'), 800);
+                return;
+            }
+
+            try {
+                const data = await apiFetch('/analytics/dashboard');
+                const reports = await apiFetch('/analytics/reports');
+
+                if (action === 'stats') {
+                    const html = `
+                        <strong>Restaurant Statistics</strong><br><br>
+                        <div class="chatbot-stat-grid">
+                            <div class="chatbot-stat-item"><strong>Total Feedback</strong><span>${data.totalFeedback || 0}</span></div>
+                            <div class="chatbot-stat-item"><strong>Restaurant Rating</strong><span>⭐ ${(data.avgRestaurantRating || 0).toFixed(1)}</span></div>
+                            <div class="chatbot-stat-item"><strong>Server Rating</strong><span>⭐ ${(data.avgServerRating || 0).toFixed(1)}</span></div>
+                            <div class="chatbot-stat-item"><strong>Today</strong><span>${data.todayFeedback || 0}</span></div>
+                        </div>
+                        <div class="chatbot-stat-grid" style="margin-top:8px;">
+                            <div class="chatbot-stat-item"><strong>Positive</strong><span style="color:#22c55e">${data.positivePercentage || 0}%</span></div>
+                            <div class="chatbot-stat-item"><strong>Negative</strong><span style="color:#ef4444">${data.negativePercentage || 0}%</span></div>
+                        </div>
+                    `;
+                    addChatbotMessage(html, 'bot');
+                } else if (action === 'servers') {
+                    let html = '<strong>Server Performance Rankings</strong><br><br>';
+                    if (reports.serverRankings && reports.serverRankings.length > 0) {
+                        html += '<ul class="chatbot-list">';
+                        reports.serverRankings.forEach((s, i) => {
+                            html += `<li><span>${i + 1}. ${escapeHtml(s.name)}</span><span>⭐ ${(s.avgRating || 0).toFixed(1)} (${s.count} reviews)</span></li>`;
+                        });
+                        html += '</ul>';
+                    } else {
+                        html += 'No server data available yet.';
+                    }
+                    addChatbotMessage(html, 'bot');
+                } else if (action === 'categories') {
+                    let html = '<strong>Category Analysis</strong><br><br>';
+                    if (reports.categoryRatings && reports.categoryRatings.length > 0) {
+                        html += '<ul class="chatbot-list">';
+                        reports.categoryRatings.forEach(c => {
+                            html += `<li><span>${escapeHtml(c.category)}</span><span>⭐ ${(c.avgRating || 0).toFixed(1)} (${c.count})</span></li>`;
+                        });
+                        html += '</ul>';
+                    } else {
+                        html += 'No category data available yet.';
+                    }
+                    addChatbotMessage(html, 'bot');
+                }
+            } catch (err) {
+                addChatbotMessage('Failed to load data. Please try again.', 'bot');
+            }
+        }
+
+        initChatbot();
+    </script>
+</body>
+</html>

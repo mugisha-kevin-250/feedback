@@ -1,0 +1,290 @@
+{
+  "managers": [
+    {
+      "id": "m1",
+      "name": "Admin",
+      "email": "admin@serverate.com",
+      "password_hash": "$2a$10$zNVlre5qloYU/sHuSPlvveBxPe/63/Z25vms4JULWpXrlChJOVyiq",
+      "created_at": "2026-08-12T19:52:09.760Z",
+      "updated_at": "2026-08-12T19:52:09.760Z"
+    }
+  ],
+  "servers": [
+    {
+      "id": "id_101",
+      "name": "kevin",
+      "employee_id": null,
+      "phone": null,
+      "status": "active",
+      "created_at": "2026-08-12T20:08:26.751Z",
+      "updated_at": "2026-08-12T20:08:26.751Z"
+    },
+    {
+      "id": "id_102",
+      "name": "aime",
+      "employee_id": null,
+      "phone": null,
+      "status": "active",
+      "created_at": "2026-08-12T20:08:33.488Z",
+      "updated_at": "2026-08-12T20:08:33.488Z"
+    },
+    {
+      "id": "id_103",
+      "name": "mugisha",
+      "employee_id": null,
+      "phone": null,
+      "status": "active",
+      "created_at": "2026-08-12T20:08:40.055Z",
+      "updated_at": "2026-08-12T20:08:40.055Z"
+    },
+    {
+      "id": "id_104",
+      "name": "vensis",
+      "employee_id": null,
+      "phone": null,
+      "status": "active",
+      "created_at": "2026-08-12T20:08:50.187Z",
+      "updated_at": "2026-08-12T20:08:50.187Z"
+    },
+    {
+      "id": "id_105",
+      "name": "quin",
+      "employee_id": null,
+      "phone": null,
+      "status": "active",
+      "created_at": "2026-08-12T20:08:55.954Z",
+      "updated_at": "2026-08-12T20:08:55.954Z"
+    },
+    {
+      "id": "id_106",
+      "name": "mama",
+      "employee_id": null,
+      "phone": null,
+      "status": "active",
+      "created_at": "2026-08-12T20:09:01.341Z",
+      "updated_at": "2026-08-12T20:09:01.341Z"
+    }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "text": "How would you rate the food?",
+      "category": "Food",
+      "type": "star",
+      "options": [],
+      "required": true,
+      "active": true,
+      "display_order": 1,
+      "created_at": "2026-08-12T19:52:09.760Z",
+      "updated_at": "2026-08-12T19:52:09.760Z"
+    },
+    {
+      "id": "q2",
+      "text": "How was the service?",
+      "category": "Service",
+      "type": "star",
+      "options": [],
+      "required": true,
+      "active": true,
+      "display_order": 2,
+      "created_at": "2026-08-12T19:52:09.760Z",
+      "updated_at": "2026-08-12T19:52:09.760Z"
+    },
+    {
+      "id": "q3",
+      "text": "How clean was the restaurant?",
+      "category": "Cleanliness",
+      "type": "star",
+      "options": [],
+      "required": false,
+      "active": true,
+      "display_order": 3,
+      "created_at": "2026-08-12T19:52:09.760Z",
+      "updated_at": "2026-08-12T19:52:09.760Z"
+    },
+    {
+      "id": "q4",
+      "text": "How was the waiting time?",
+      "category": "Waiting",
+      "type": "star",
+      "options": [],
+      "required": false,
+      "active": true,
+      "display_order": 4,
+      "created_at": "2026-08-12T19:52:09.760Z",
+      "updated_at": "2026-08-12T19:52:09.760Z"
+    },
+    {
+      "id": "q5",
+      "text": "How was the atmosphere?",
+      "category": "Atmosphere",
+      "type": "star",
+      "options": [],
+      "required": false,
+      "active": true,
+      "display_order": 5,
+      "created_at": "2026-08-12T19:52:09.760Z",
+      "updated_at": "2026-08-12T19:52:09.760Z"
+    },
+    {
+      "id": "q6",
+      "text": "Would you recommend us?",
+      "category": "Recommendation",
+      "type": "yes_no",
+      "options": [],
+      "required": true,
+      "active": true,
+      "display_order": 6,
+      "created_at": "2026-08-12T19:52:09.761Z",
+      "updated_at": "2026-08-12T19:52:09.761Z"
+    },
+    {
+      "id": "q7",
+      "text": "What did you like most?",
+      "category": "Feedback",
+      "type": "multiple_choice",
+      "options": [
+        "Food",
+        "Service",
+        "Atmosphere",
+        "Cleanliness",
+        "Price",
+        "Other"
+      ],
+      "required": false,
+      "active": true,
+      "display_order": 7,
+      "created_at": "2026-08-12T19:52:09.761Z",
+      "updated_at": "2026-08-12T19:52:09.761Z"
+    },
+    {
+      "id": "q8",
+      "text": "Additional comments",
+      "category": "Feedback",
+      "type": "text",
+      "options": [],
+      "required": false,
+      "active": true,
+      "display_order": 8,
+      "created_at": "2026-08-12T19:52:09.761Z",
+      "updated_at": "2026-08-12T19:52:09.761Z"
+    }
+  ],
+  "feedback": [
+    {
+      "id": "id_107",
+      "server_id": "id_101",
+      "overall_rating": 5,
+      "server_rating": 5,
+      "comment": "better",
+      "device_info": {
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+        "screenSize": "1093x543"
+      },
+      "created_at": "2026-08-12T20:10:10.666Z"
+    },
+    {
+      "id": "id_116",
+      "server_id": "id_101",
+      "overall_rating": 5,
+      "server_rating": null,
+      "comment": null,
+      "device_info": {},
+      "created_at": "2026-08-13T08:02:38.217Z"
+    }
+  ],
+  "feedbackAnswers": [
+    {
+      "id": "id_108",
+      "feedback_id": "id_107",
+      "question_id": "q1",
+      "answer": "5",
+      "created_at": "2026-08-12T20:10:10.795Z"
+    },
+    {
+      "id": "id_109",
+      "feedback_id": "id_107",
+      "question_id": "q2",
+      "answer": "5",
+      "created_at": "2026-08-12T20:10:10.795Z"
+    },
+    {
+      "id": "id_110",
+      "feedback_id": "id_107",
+      "question_id": "q3",
+      "answer": "5",
+      "created_at": "2026-08-12T20:10:10.795Z"
+    },
+    {
+      "id": "id_111",
+      "feedback_id": "id_107",
+      "question_id": "q4",
+      "answer": "1",
+      "created_at": "2026-08-12T20:10:10.795Z"
+    },
+    {
+      "id": "id_112",
+      "feedback_id": "id_107",
+      "question_id": "q5",
+      "answer": "1",
+      "created_at": "2026-08-12T20:10:10.795Z"
+    },
+    {
+      "id": "id_113",
+      "feedback_id": "id_107",
+      "question_id": "q6",
+      "answer": "No",
+      "created_at": "2026-08-12T20:10:10.795Z"
+    },
+    {
+      "id": "id_114",
+      "feedback_id": "id_107",
+      "question_id": "q7",
+      "answer": "Service",
+      "created_at": "2026-08-12T20:10:10.795Z"
+    },
+    {
+      "id": "id_115",
+      "feedback_id": "id_107",
+      "question_id": "q8",
+      "answer": "better",
+      "created_at": "2026-08-12T20:10:10.796Z"
+    },
+    {
+      "id": "id_117",
+      "feedback_id": "id_116",
+      "question_id": "q1",
+      "answer": "5",
+      "created_at": "2026-08-13T08:02:38.218Z"
+    }
+  ],
+  "customers": [
+    {
+      "id": "cust_1786565438908_y0ly8t935",
+      "name": "aime kevinmugisha",
+      "email": "mugishaaimekevin@gmail.com",
+      "phone": "0788794912",
+      "created_at": "2026-08-12T20:10:38.912Z"
+    },
+    {
+      "id": "cust_1786607642611_2dyeldn4b",
+      "name": "Test Customer",
+      "email": "test@example.com",
+      "phone": "+1234567890",
+      "created_at": "2026-08-13T07:54:02.612Z"
+    }
+  ],
+  "settings": {
+    "restaurant_name": "My Restaurant",
+    "description": "Welcome to our restaurant!",
+    "include_server_rating": true,
+    "include_comment": true,
+    "email_host": "smtp.gmail.com",
+    "email_port": "587",
+    "email_user": "aimekevinmugisha@gmail.com",
+    "email_pass": "kowf gcic ylwk ovyp",
+    "email_from": "aimekevinmugisha@gmail.com",
+    "updated_at": "2026-08-12T20:07:58.794Z"
+  },
+  "idCounter": 117
+}
