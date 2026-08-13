@@ -104,8 +104,26 @@ app.use('/api/', limiter);
 // =============================================
 let isMongoConnected = false;
 
-const MONGODB_URI = process.env.MONGODB_URI;
-if (!MONGODB_URI) {
+function cleanMongoUri(uri) {
+    if (!uri) return uri;
+    let cleaned = uri.trim();
+    if (cleaned.includes('=')) {
+        const parts = cleaned.split('=');
+        cleaned = parts.slice(1).join('=').trim();
+    }
+    if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+        cleaned = cleaned.slice(1, -1).trim();
+    }
+    if (cleaned.startsWith("'") && cleaned.endsWith("'")) {
+        cleaned = cleaned.slice(1, -1).trim();
+    }
+    return cleaned;
+}
+
+const rawMongoUri = process.env.MONGODB_URI;
+const MONGODB_URI = cleanMongoUri(rawMongoUri);
+
+if (!rawMongoUri) {
     console.error('========================================');
     console.error('❌ CRITICAL: MONGODB_URI is NOT SET');
     console.error('========================================');
