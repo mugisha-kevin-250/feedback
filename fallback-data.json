@@ -279,12 +279,6 @@
     "description": "Welcome to our restaurant!",
     "include_server_rating": true,
     "include_comment": true,
-    "email_host": "smtp.gmail.com",
-    "email_port": "587",
-    "email_user": "aimekevinmugisha@gmail.com",
-    "email_pass": "kowf gcic ylwk ovyp",
-    "email_from": "aimekevinmugisha@gmail.com",
-    "resend_api_key": "",
     "updated_at": "2026-08-12T20:07:58.794Z"
   },
   "idCounter": 117

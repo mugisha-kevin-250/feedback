@@ -8,8 +8,6 @@ const mongoose = require('mongoose');
 const path = require('path');
 const { body, validationResult, param, query } = require('express-validator');
 const rateLimit = require('express-rate-limit');
-const nodemailer = require('nodemailer');
-const { Resend } = require('resend');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const stream = require('stream');
@@ -44,53 +42,6 @@ function saveFallbackDataToFile() {
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'serveRate-super-secret-key-change-in-production-2026';
 const JWT_EXPIRY = '7d';
-
-// Email configuration
-const EMAIL_HOST = process.env.EMAIL_HOST || 'smtp.gmail.com';
-const EMAIL_PORT = parseInt(process.env.EMAIL_PORT) || 587;
-const EMAIL_USER = process.env.EMAIL_USER || '';
-const EMAIL_PASS = process.env.EMAIL_PASS || '';
-const EMAIL_FROM = process.env.EMAIL_FROM || EMAIL_USER;
-const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-
-let transporter = null;
-function updateEmailTransporter(settings) {
-    const host = settings.email_host || process.env.EMAIL_HOST || 'smtp.gmail.com';
-    const port = settings.email_port ? parseInt(settings.email_port) : (parseInt(process.env.EMAIL_PORT) || 587);
-    const user = settings.email_user || process.env.EMAIL_USER || '';
-    const pass = settings.email_pass || process.env.EMAIL_PASS || '';
-    const from = settings.email_from || process.env.EMAIL_FROM || user;
-
-    if (user && pass) {
-        const smtpConfig = {
-            host: host,
-            port: port,
-            secure: port === 465,
-            auth: { user: user, pass: pass }
-        };
-
-        if (port === 465 || host.includes('gmail')) {
-            smtpConfig.tls = { rejectUnauthorized: false };
-        }
-
-        transporter = nodemailer.createTransport(smtpConfig);
-        console.log('✅ Email transporter updated from settings');
-    } else {
-        transporter = null;
-        console.log('⚠️ Email transporter disabled: missing credentials');
-    }
-
-    return { host, port, user, from };
-}
-if (EMAIL_USER && EMAIL_PASS) {
-    updateEmailTransporter({
-        email_host: EMAIL_HOST,
-        email_port: EMAIL_PORT,
-        email_user: EMAIL_USER,
-        email_pass: EMAIL_PASS,
-        email_from: EMAIL_FROM
-    });
-}
 
 // =============================================
 // MIDDLEWARE
@@ -163,7 +114,6 @@ mongoose.connect(resolvedMongoUri, {
     console.log('✅ MongoDB connected successfully');
     isMongoConnected = true;
     seedDatabase();
-    loadEmailSettings();
 })
 .catch(err => {
     console.error('❌ MongoDB connection error:', err.message);
@@ -173,31 +123,7 @@ mongoose.connect(resolvedMongoUri, {
     console.log('💾 Using in-memory fallback mode...');
     isMongoConnected = false;
     initializeFallbackData();
-    loadEmailSettings();
 });
-
-async function loadEmailSettings() {
-    try {
-        let settings = null;
-        if (isMongoConnected) {
-            const db = mongoose.connection.db;
-            settings = await db.collection('settings').findOne({});
-        } else {
-            settings = fallbackData.settings;
-        }
-        if (settings) {
-            updateEmailTransporter({
-                email_host: settings.email_host || '',
-                email_port: settings.email_port || 587,
-                email_user: settings.email_user || '',
-                email_pass: settings.email_pass || '',
-                email_from: settings.email_from || ''
-            });
-        }
-    } catch (err) {
-        console.error('Failed to load email settings on startup:', err);
-    }
-}
 
 // =============================================
 // FALLBACK DATA (in-memory)
@@ -242,11 +168,6 @@ function initializeFallbackData() {
             description: 'Welcome to our restaurant!',
             include_server_rating: true,
             include_comment: true,
-            email_host: '',
-            email_port: 587,
-            email_user: '',
-            email_pass: '',
-            email_from: '',
             updated_at: new Date()
         },
         idCounter: 100
@@ -324,11 +245,6 @@ async function seedDatabase() {
                 description: 'Welcome to our restaurant!',
                 include_server_rating: true,
                 include_comment: true,
-                email_host: '',
-                email_port: 587,
-                email_user: '',
-                email_pass: '',
-                email_from: '',
                 updated_at: new Date()
             });
             console.log('✅ Default settings created');
@@ -525,8 +441,6 @@ app.get('/api/servers', authenticateToken, async (req, res) => {
             servers = servers.map(s => ({
                 id: s._id,
                 name: s.name,
-                employeeId: s.employee_id,
-                phone: s.phone,
                 status: s.status,
                 avgRating: statsMap[s._id.toString()]?.avgRating || 0,
                 reviewCount: statsMap[s._id.toString()]?.reviewCount || 0
@@ -540,8 +454,6 @@ app.get('/api/servers', authenticateToken, async (req, res) => {
                 return {
                     id: s.id,
                     name: s.name,
-                    employeeId: s.employee_id,
-                    phone: s.phone,
                     status: s.status,
                     avgRating: avgRating,
                     reviewCount: serverFeedback.length
@@ -565,11 +477,9 @@ app.get('/api/servers/active', async (req, res) => {
             servers = servers.map(s => ({
                 id: s._id,
                 name: s.name,
-                employeeId: s.employee_id,
-                phone: s.phone,
                 status: s.status,
-                createdAt: s.created_at,
-                updatedAt: s.updated_at
+                avgRating: statsMap[s._id.toString()]?.avgRating || 0,
+                reviewCount: statsMap[s._id.toString()]?.reviewCount || 0
             }));
         } else {
             servers = fallbackData.servers.filter(s => s.status === 'active');
@@ -610,8 +520,6 @@ app.get('/api/servers/ranked', async (req, res) => {
             servers = servers.map(s => ({
                 id: s._id,
                 name: s.name,
-                employeeId: s.employee_id,
-                phone: s.phone,
                 status: s.status,
                 avgRating: statsMap[s._id.toString()]?.avgRating || 0,
                 reviewCount: statsMap[s._id.toString()]?.reviewCount || 0
@@ -625,8 +533,6 @@ app.get('/api/servers/ranked', async (req, res) => {
                 return {
                     id: s.id,
                     name: s.name,
-                    employeeId: s.employee_id,
-                    phone: s.phone,
                     status: s.status,
                     avgRating: avgRating,
                     reviewCount: serverFeedback.length
@@ -651,7 +557,7 @@ app.post('/api/servers', authenticateToken, [
         return res.status(400).json({ error: errors.array()[0].msg });
     }
 
-    const { name, employeeId, phone, status = 'active' } = req.body;
+    const { name, status = 'active' } = req.body;
 
     try {
         let server = null;
@@ -659,8 +565,6 @@ app.post('/api/servers', authenticateToken, [
             const db = mongoose.connection.db;
             const result = await db.collection('servers').insertOne({
                 name,
-                employee_id: employeeId || null,
-                phone: phone || null,
                 status,
                 created_at: new Date(),
                 updated_at: new Date()
@@ -668,16 +572,12 @@ app.post('/api/servers', authenticateToken, [
             server = {
                 id: result.insertedId,
                 name,
-                employeeId: employeeId || null,
-                phone: phone || null,
                 status
             };
         } else {
             server = {
                 id: generateId(),
                 name,
-                employee_id: employeeId || null,
-                phone: phone || null,
                 status,
                 created_at: new Date(),
                 updated_at: new Date()
@@ -695,7 +595,7 @@ app.post('/api/servers', authenticateToken, [
 // Update server
 app.put('/api/servers/:id', authenticateToken, async (req, res) => {
     const id = req.params.id;
-    const { name, employeeId, phone, status } = req.body;
+    const { name, status } = req.body;
 
     try {
         let server = null;
@@ -703,8 +603,6 @@ app.put('/api/servers/:id', authenticateToken, async (req, res) => {
             const db = mongoose.connection.db;
             const updateData = { updated_at: new Date() };
             if (name !== undefined) updateData.name = name;
-            if (employeeId !== undefined) updateData.employee_id = employeeId || null;
-            if (phone !== undefined) updateData.phone = phone || null;
             if (status !== undefined) updateData.status = status;
 
             const result = await db.collection('servers').findOneAndUpdate(
@@ -718,8 +616,6 @@ app.put('/api/servers/:id', authenticateToken, async (req, res) => {
             server = {
                 id: result.value._id,
                 name: result.value.name,
-                employeeId: result.value.employee_id,
-                phone: result.value.phone,
                 status: result.value.status
             };
         } else {
@@ -728,8 +624,6 @@ app.put('/api/servers/:id', authenticateToken, async (req, res) => {
                 return res.status(404).json({ error: 'Server not found' });
             }
             if (name !== undefined) fallbackData.servers[index].name = name;
-            if (employeeId !== undefined) fallbackData.servers[index].employee_id = employeeId || null;
-            if (phone !== undefined) fallbackData.servers[index].phone = phone || null;
             if (status !== undefined) fallbackData.servers[index].status = status;
             fallbackData.servers[index].updated_at = new Date();
             server = fallbackData.servers[index];
@@ -1350,174 +1244,89 @@ app.get('/api/customers', authenticateToken, async (req, res) => {
     }
 });
 
-// Download customers as CSV (authenticated)
-app.get('/api/customers/download', authenticateToken, async (req, res) => {
+// Download customers as PDF (authenticated) - 20 customers per page
+app.get('/api/customers/download-pdf', authenticateToken, async (req, res) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 20;
+        const skip = (page - 1) * limit;
+
         let customers = [];
+        let total = 0;
         if (isMongoConnected) {
             const db = mongoose.connection.db;
-            customers = await db.collection('customers').find().sort({ created_at: -1 }).toArray();
+            total = await db.collection('customers').countDocuments();
+            customers = await db.collection('customers').find().sort({ created_at: -1 }).skip(skip).limit(limit).toArray();
         } else {
-            customers = [...fallbackData.customers].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            const sorted = [...fallbackData.customers].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            total = sorted.length;
+            customers = sorted.slice(skip, skip + limit);
         }
 
-        const csvHeader = 'Name,Email,Phone,Date\n';
-        const csvRows = customers.map(c => {
-            const date = new Date(c.created_at).toLocaleDateString();
-            return `"${(c.name || '').replace(/"/g, '""')}","${(c.email || '').replace(/"/g, '""')}","${(c.phone || '').replace(/"/g, '""')}","${date}"`;
-        }).join('\n');
+        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        const chunks = [];
+        doc.on('data', chunk => chunks.push(chunk));
+        doc.on('end', () => res.send(Buffer.concat(chunks)));
+        doc.on('error', (err) => res.status(500).json({ error: 'Failed to generate PDF' }));
 
-        const csv = csvHeader + csvRows;
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename=customers.csv');
-        res.send(csv);
+        doc.fontSize(20).text('ServeRate - Customer List', { align: 'center' });
+        doc.moveDown(0.5);
+        doc.fontSize(10).text(`Page ${page} | Generated on: ${new Date().toLocaleString()} | Showing ${skip + 1}-${Math.min(skip + limit, total)} of ${total}`, { align: 'center' });
+        doc.moveDown(1);
+
+        doc.fontSize(14).text('Customers', { underline: true });
+        doc.moveDown(0.3);
+
+        const tableTop = doc.y;
+        const colWidths = [150, 200, 120, 80];
+        const headers = ['Name', 'Email', 'Phone', 'Date Added'];
+        const startX = 50;
+
+        doc.fontSize(10).font('Helvetica-Bold');
+        headers.forEach((h, i) => {
+            doc.text(h, startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0), tableTop, { width: colWidths[i], align: 'left' });
+        });
+
+        doc.font('Helvetica');
+        customers.forEach((c, idx) => {
+            const rowY = tableTop + 20 + idx * 18;
+            if (rowY > 700) {
+                doc.addPage();
+                const newTop = 50;
+                doc.fontSize(10).font('Helvetica-Bold');
+                headers.forEach((h, i) => {
+                    doc.text(h, startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0), newTop, { width: colWidths[i], align: 'left' });
+                });
+                doc.font('Helvetica');
+                customers.forEach((c2, idx2) => {
+                    const rowY2 = newTop + 20 + idx2 * 18;
+                    const name = c2.name || '';
+                    const email = c2.email || '';
+                    const phone = c2.phone || '';
+                    const date = new Date(c2.created_at).toLocaleDateString();
+                    doc.text(name, startX, rowY2, { width: colWidths[0] });
+                    doc.text(email, startX + colWidths[0], rowY2, { width: colWidths[1] });
+                    doc.text(phone, startX + colWidths[0] + colWidths[1], rowY2, { width: colWidths[2] });
+                    doc.text(date, startX + colWidths[0] + colWidths[1] + colWidths[2], rowY2, { width: colWidths[3] });
+                });
+                return;
+            }
+            const name = c.name || '';
+            const email = c.email || '';
+            const phone = c.phone || '';
+            const date = new Date(c.created_at).toLocaleDateString();
+            doc.text(name, startX, rowY, { width: colWidths[0] });
+            doc.text(email, startX + colWidths[0], rowY, { width: colWidths[1] });
+            doc.text(phone, startX + colWidths[0] + colWidths[1], rowY, { width: colWidths[2] });
+            doc.text(date, startX + colWidths[0] + colWidths[1] + colWidths[2], rowY, { width: colWidths[3] });
+        });
+
+        doc.end();
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Failed to download customers' });
+        res.status(500).json({ error: 'Failed to download customers PDF' });
     }
 });
-
-// =============================================
-// EMAIL ROUTES
-// =============================================
-
-// Send announcement to all customers (authenticated)
-app.post('/api/email/send-announcement', authenticateToken, [
-    body('subject').notEmpty().withMessage('Subject is required'),
-    body('body').notEmpty().withMessage('Email body is required'),
-], async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ error: errors.array()[0].msg });
-    }
-
-    const { subject, body: emailBody } = req.body;
-
-    try {
-        let customers = [];
-        if (isMongoConnected) {
-            const db = mongoose.connection.db;
-            customers = await db.collection('customers').find().toArray();
-        } else {
-            customers = fallbackData.customers;
-        }
-
-        if (customers.length === 0) {
-            return res.status(400).json({ error: 'No customers to email' });
-        }
-
-        let currentSettings = null;
-        if (isMongoConnected) {
-            const db = mongoose.connection.db;
-            currentSettings = await db.collection('settings').findOne({});
-        } else {
-            currentSettings = fallbackData.settings;
-        }
-
-        const resendKey = currentSettings?.resend_api_key || process.env.RESEND_API_KEY || '';
-        const from = currentSettings?.email_from || process.env.EMAIL_FROM || currentSettings?.email_user || process.env.EMAIL_USER || '';
-
-        // --- Try Resend HTTP API first (works on Render free tier, no SMTP needed) ---
-        if (resendKey) {
-            try {
-                const resend = new Resend(resendKey);
-                const resendFrom = (from && !from.match(/(gmail\.com|yahoo\.com|outlook\.com|hotmail\.com)/)) ? from : 'onboarding@resend.dev';
-                const { data, error } = await resend.emails.send({
-                    from: resendFrom,
-                    to: customers.map(c => c.email),
-                    subject: subject,
-                    html: '<p>' + emailBody.replace(/\n/g, '<br>') + '</p>',
-                    text: emailBody
-                });
-
-                if (error) {
-                    throw new Error(error.message || JSON.stringify(error));
-                }
-
-                return res.json({ success: true, message: `Announcement sent to ${customers.length} customers via Resend` });
-
-            } catch (resendErr) {
-                console.error('Resend error:', resendErr);
-                return res.status(500).json({ error: 'Failed to send announcement: ' + resendErr.message });
-            }
-        }
-
-        // --- Fall back to SMTP ---
-        const host = currentSettings?.email_host || process.env.EMAIL_HOST || 'smtp.gmail.com';
-        const port = currentSettings?.email_port ? parseInt(currentSettings.email_port) : (parseInt(process.env.EMAIL_PORT) || 587);
-        const user = currentSettings?.email_user || process.env.EMAIL_USER || '';
-        const pass = currentSettings?.email_pass || process.env.EMAIL_PASS || '';
-
-        if (!user || !pass) {
-            return res.status(500).json({ error: 'Email service not configured. Please configure SMTP settings or a Resend API key in the admin panel (Settings tab).' });
-        }
-
-        const smtpConfig = {
-            host: host,
-            port: port,
-            secure: port === 465,
-            auth: { user: user, pass: pass },
-            connectionTimeout: 10000,
-            greetingTimeout: 10000,
-            timeout: 60000
-        };
-
-        if (port === 465 || host.includes('gmail')) {
-            smtpConfig.tls = { rejectUnauthorized: false };
-        }
-
-        const mailOptions = {
-            from: from,
-            bcc: customers.map(c => c.email),
-            subject: subject,
-            text: emailBody,
-            html: '<p>' + emailBody.replace(/\n/g, '<br>') + '</p>'
-        };
-
-        // Try existing global transporter first
-        if (transporter) {
-            try {
-                await mailTransporterSend(transporter, mailOptions);
-                return res.json({ success: true, message: `Announcement sent to ${customers.length} customers` });
-            } catch (smtpErr) {
-                console.error('SMTP send failed:', smtpErr);
-                return res.status(500).json({ error: 'Failed to send announcement: ' + smtpErr.message + '. Note: SMTP may be blocked on your hosting platform. Consider using a Resend API key instead.' });
-            }
-        }
-
-        // Create new transporter and verify
-        const mailTransporter = nodemailer.createTransport(smtpConfig);
-
-        try {
-            await new Promise((resolve, reject) => {
-                const timer = setTimeout(() => {
-                    reject(new Error('SMTP connection timeout - please verify your SMTP settings'));
-                }, 15000);
-                mailTransporter.verify()
-                    .then(() => { clearTimeout(timer); resolve(); })
-                    .catch((err) => { clearTimeout(timer); reject(err); });
-            });
-        } catch (verifyErr) {
-            console.error('SMTP verification failed:', verifyErr);
-            return res.status(500).json({ error: 'SMTP connection failed: ' + verifyErr.message + '. Consider using a Resend API key instead.' });
-        }
-
-        await mailTransporter.sendMail(mailOptions);
-        res.json({ success: true, message: `Announcement sent to ${customers.length} customers` });
-    } catch (err) {
-        console.error('Email sending error:', err);
-        res.status(500).json({ error: 'Failed to send announcement: ' + err.message });
-    }
-});
-
-function mailTransporterSend(transporterObj, mailOptions) {
-    return new Promise((resolve, reject) => {
-        transporterObj.sendMail(mailOptions, (err, info) => {
-            if (err) reject(err);
-            else resolve(info);
-        });
-    });
-}
 
 // =============================================
 // ANALYTICS ROUTES
@@ -1890,13 +1699,7 @@ app.get('/api/settings', authenticateToken, async (req, res) => {
                     restaurant_name: 'My Restaurant',
                     description: 'Welcome to our restaurant!',
                     include_server_rating: true,
-                    include_comment: true,
-                    email_host: '',
-                    email_port: 587,
-                    email_user: '',
-                    email_pass: '',
-                    email_from: '',
-                    resend_api_key: ''
+                    include_comment: true
                 };
             }
         } else {
@@ -1911,7 +1714,7 @@ app.get('/api/settings', authenticateToken, async (req, res) => {
 
 // Update settings
 app.put('/api/settings', authenticateToken, async (req, res) => {
-    const { restaurantName, description, includeServerRating, includeComment, emailHost, emailPort, emailUser, emailPass, emailFrom, resendApiKey, email_host, email_port, email_user, email_pass, email_from, resend_api_key } = req.body;
+    const { restaurantName, description, includeServerRating, includeComment } = req.body;
 
     try {
         let settings = null;
@@ -1922,12 +1725,6 @@ app.put('/api/settings', authenticateToken, async (req, res) => {
             if (description !== undefined) updateData.description = description;
             if (includeServerRating !== undefined) updateData.include_server_rating = includeServerRating;
             if (includeComment !== undefined) updateData.include_comment = includeComment;
-            if (emailHost !== undefined || email_host !== undefined) updateData.email_host = emailHost || email_host;
-            if (emailPort !== undefined || email_port !== undefined) updateData.email_port = emailPort || email_port;
-            if (emailUser !== undefined || email_user !== undefined) updateData.email_user = emailUser || email_user;
-            if (emailPass !== undefined || email_pass !== undefined) updateData.email_pass = emailPass || email_pass;
-            if (emailFrom !== undefined || email_from !== undefined) updateData.email_from = emailFrom || email_from;
-            if (resendApiKey !== undefined || resend_api_key !== undefined) updateData.resend_api_key = resendApiKey || resend_api_key;
 
             const result = await db.collection('settings').findOneAndUpdate(
                 {},
@@ -1940,18 +1737,10 @@ app.put('/api/settings', authenticateToken, async (req, res) => {
             if (description !== undefined) fallbackData.settings.description = description;
             if (includeServerRating !== undefined) fallbackData.settings.include_server_rating = includeServerRating;
             if (includeComment !== undefined) fallbackData.settings.include_comment = includeComment;
-            if (emailHost !== undefined || email_host !== undefined) fallbackData.settings.email_host = emailHost || email_host;
-            if (emailPort !== undefined || email_port !== undefined) fallbackData.settings.email_port = emailPort || email_port;
-            if (emailUser !== undefined || email_user !== undefined) fallbackData.settings.email_user = emailUser || email_user;
-            if (emailPass !== undefined || email_pass !== undefined) fallbackData.settings.email_pass = emailPass || email_pass;
-            if (emailFrom !== undefined || email_from !== undefined) fallbackData.settings.email_from = emailFrom || email_from;
-            if (resendApiKey !== undefined || resend_api_key !== undefined) fallbackData.settings.resend_api_key = resendApiKey || resend_api_key;
             fallbackData.settings.updated_at = new Date();
             settings = fallbackData.settings;
             saveFallbackDataToFile();
         }
-
-        updateEmailTransporter(settings);
 
         res.json(settings);
     } catch (err) {
