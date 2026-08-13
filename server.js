@@ -408,16 +408,34 @@ app.post('/api/auth/logout',  (req, res) => {
 });
 
 // Verify token
-app.get('/api/auth/verify',  (req, res) => {
+app.get('/api/auth/verify', authenticateToken, (req, res) => {
     res.json({ valid: true, user: req.user });
 });
+
+// Authentication middleware
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (!token) {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+            return res.status(403).json({ error: 'Invalid or expired token' });
+        }
+        req.user = user;
+        next();
+    });
+}
 
 // =============================================
 // SERVER ROUTES
 // =============================================
 
 // Get all servers
-app.get('/api/servers',  async (req, res) => {
+app.get('/api/servers', authenticateToken, async (req, res) => {
     try {
         let servers = [];
         if (isMongoConnected) {
@@ -563,7 +581,7 @@ app.get('/api/servers/ranked', async (req, res) => {
 });
 
 // Create server
-app.post('/api/servers',  [
+app.post('/api/servers', authenticateToken, [
     body('name').notEmpty().withMessage('Server name required'),
 ], async (req, res) => {
     const errors = validationResult(req);
@@ -613,7 +631,7 @@ app.post('/api/servers',  [
 });
 
 // Update server
-app.put('/api/servers/:id',  async (req, res) => {
+app.put('/api/servers/:id', authenticateToken, async (req, res) => {
     const id = req.params.id;
     const { name, employeeId, phone, status } = req.body;
 
@@ -663,7 +681,7 @@ app.put('/api/servers/:id',  async (req, res) => {
 });
 
 // Delete server
-app.delete('/api/servers/:id',  async (req, res) => {
+app.delete('/api/servers/:id', authenticateToken, async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -693,7 +711,7 @@ app.delete('/api/servers/:id',  async (req, res) => {
 // =============================================
 
 // Get all questions
-app.get('/api/questions',  async (req, res) => {
+app.get('/api/questions', authenticateToken, async (req, res) => {
     try {
         let questions = [];
         if (isMongoConnected) {
@@ -751,7 +769,7 @@ app.get('/api/questions/active', async (req, res) => {
 });
 
 // Create question
-app.post('/api/questions',  [
+app.post('/api/questions', authenticateToken, [
     body('text').notEmpty().withMessage('Question text required'),
     body('type').isIn(['star', 'multiple_choice', 'yes_no', 'text']).withMessage('Invalid question type'),
 ], async (req, res) => {
@@ -811,7 +829,7 @@ app.post('/api/questions',  [
 });
 
 // Update question
-app.put('/api/questions/:id',  async (req, res) => {
+app.put('/api/questions/:id', authenticateToken, async (req, res) => {
     const id = req.params.id;
     const { text, category, type, options, required, active, displayOrder } = req.body;
 
@@ -872,7 +890,7 @@ app.put('/api/questions/:id',  async (req, res) => {
 });
 
 // Delete question
-app.delete('/api/questions/:id',  async (req, res) => {
+app.delete('/api/questions/:id', authenticateToken, async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -1034,7 +1052,7 @@ app.post('/api/feedback', [
 });
 
 // Get feedback (authenticated)
-app.get('/api/feedback',  async (req, res) => {
+app.get('/api/feedback', authenticateToken, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
@@ -1125,7 +1143,7 @@ app.get('/api/feedback',  async (req, res) => {
 });
 
 // Get single feedback
-app.get('/api/feedback/:id',  async (req, res) => {
+app.get('/api/feedback/:id', authenticateToken, async (req, res) => {
     const id = req.params.id;
 
     try {
@@ -1247,7 +1265,7 @@ app.post('/api/customers', [
 });
 
 // Get all customers (authenticated)
-app.get('/api/customers',  async (req, res) => {
+app.get('/api/customers', authenticateToken, async (req, res) => {
     try {
         let customers = [];
         if (isMongoConnected) {
@@ -1271,7 +1289,7 @@ app.get('/api/customers',  async (req, res) => {
 });
 
 // Download customers as CSV (authenticated)
-app.get('/api/customers/download',  async (req, res) => {
+app.get('/api/customers/download', authenticateToken, async (req, res) => {
     try {
         let customers = [];
         if (isMongoConnected) {
@@ -1302,7 +1320,7 @@ app.get('/api/customers/download',  async (req, res) => {
 // =============================================
 
 // Send announcement to all customers (authenticated)
-app.post('/api/email/send-announcement',  [
+app.post('/api/email/send-announcement', authenticateToken, [
     body('subject').notEmpty().withMessage('Subject is required'),
     body('body').notEmpty().withMessage('Email body is required'),
 ], async (req, res) => {
@@ -1372,7 +1390,7 @@ app.post('/api/email/send-announcement',  [
 // =============================================
 
 // Dashboard analytics
-app.get('/api/analytics/dashboard',  async (req, res) => {
+app.get('/api/analytics/dashboard', authenticateToken, async (req, res) => {
     try {
         let data = {};
 
@@ -1564,7 +1582,7 @@ app.get('/api/analytics/dashboard',  async (req, res) => {
 });
 
 // Reports analytics
-app.get('/api/analytics/reports',  async (req, res) => {
+app.get('/api/analytics/reports', authenticateToken, async (req, res) => {
     try {
         let data = {};
 
@@ -1727,7 +1745,7 @@ app.get('/api/analytics/reports',  async (req, res) => {
 // =============================================
 
 // Get settings
-app.get('/api/settings',  async (req, res) => {
+app.get('/api/settings', authenticateToken, async (req, res) => {
     try {
         let settings = null;
         if (isMongoConnected) {
@@ -1757,7 +1775,7 @@ app.get('/api/settings',  async (req, res) => {
 });
 
 // Update settings
-app.put('/api/settings',  async (req, res) => {
+app.put('/api/settings', authenticateToken, async (req, res) => {
     const { restaurantName, description, includeServerRating, includeComment, emailHost, emailPort, emailUser, emailPass, emailFrom, email_host, email_port, email_user, email_pass, email_from } = req.body;
 
     try {
@@ -1989,7 +2007,7 @@ function generatePDFBuffer(data, title) {
 }
 
 // Download full report PDF (authenticated)
-app.get('/api/reports/download',  async (req, res) => {
+app.get('/api/reports/download', authenticateToken, async (req, res) => {
     try {
         const data = await getReportData();
         const pdfBuffer = await generatePDFBuffer(data, 'ServeRate - Full Report');
@@ -2003,7 +2021,7 @@ app.get('/api/reports/download',  async (req, res) => {
 });
 
 // Download server report PDF (authenticated)
-app.get('/api/reports/servers/pdf',  async (req, res) => {
+app.get('/api/reports/servers/pdf', authenticateToken, async (req, res) => {
     try {
         const data = await getReportData();
         const serverData = {
@@ -2027,7 +2045,7 @@ app.get('/api/reports/servers/pdf',  async (req, res) => {
 });
 
 // Download category report PDF (authenticated)
-app.get('/api/reports/categories/pdf',  async (req, res) => {
+app.get('/api/reports/categories/pdf', authenticateToken, async (req, res) => {
     try {
         const data = await getReportData();
         const categoryData = {

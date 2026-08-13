@@ -702,9 +702,79 @@
             }
         }
     </style>
+    <style>
+        #loginOverlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+        }
+        #loginOverlay.hidden {
+            display: none;
+        }
+        .login-card {
+            background: white;
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.16);
+            width: 100%;
+            max-width: 380px;
+            text-align: center;
+        }
+        .login-card h2 {
+            margin-bottom: 8px;
+            color: #212529;
+        }
+        .login-card p {
+            color: #868e96;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+        .login-card input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 15px;
+            margin-bottom: 12px;
+        }
+        .login-card button {
+            width: 100%;
+            padding: 10px;
+            background: #6c5ce7;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 15px;
+        }
+        .login-card button:hover {
+            background: #5a4bd1;
+        }
+        .login-error {
+            color: #e17055;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            min-height: 20px;
+        }
+    </style>
 </head>
 <body>
-    <div class="admin-page">
+    <div id="loginOverlay">
+        <div class="login-card">
+            <h2>ServeRate Admin</h2>
+            <p>Sign in to access the dashboard</p>
+            <input type="email" id="loginEmail" placeholder="admin@serverate.com" />
+            <input type="password" id="loginPassword" placeholder="admin123" />
+            <button id="loginBtn">Sign In</button>
+            <div class="login-error" id="loginError"></div>
+        </div>
+    </div>
+    <div class="admin-page" id="adminPage" style="display:none;">
         <aside class="admin-sidebar">
             <div class="page-header">
                 <h1><span class="logo">Serve</span>Rate</h1>
@@ -892,18 +962,92 @@
     <script>
         const API_BASE = 'https://customer-feedback-rev1.onrender.com/api';
 
+        function getAuthHeaders() {
+            const token = localStorage.getItem('serveRateToken');
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            return headers;
+        }
+
         async function apiFetch(endpoint, options) {
             const config = {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                ...options
+                headers: getAuthHeaders(),
+                ...options,
             };
             const res = await fetch(`${API_BASE}${endpoint}`, config);
+            if (res.status === 401) {
+                logout();
+                throw new Error('Session expired. Please sign in again.');
+            }
             const data = await res.json().catch(() => ({ error: 'Invalid response' }));
             if (!res.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
             return data;
         }
+
+        function showLogin() {
+            document.getElementById('loginOverlay').classList.remove('hidden');
+            document.getElementById('adminPage').style.display = 'none';
+        }
+
+        function showAdmin() {
+            document.getElementById('loginOverlay').classList.add('hidden');
+            document.getElementById('adminPage').style.display = 'flex';
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const errorEl = document.getElementById('loginError');
+            errorEl.textContent = '';
+            try {
+                const data = await apiFetch('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password }),
+                });
+                if (data.token) {
+                    localStorage.setItem('serveRateToken', data.token);
+                    showAdmin();
+                    initAdmin();
+                }
+            } catch (err) {
+                errorEl.textContent = err.message || 'Login failed';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('serveRateToken');
+            showLogin();
+        }
+
+        async function checkAuth() {
+            const token = localStorage.getItem('serveRateToken');
+            if (!token) {
+                showLogin();
+                return;
+            }
+            try {
+                await apiFetch('/auth/verify');
+                showAdmin();
+                initAdmin();
+            } catch (err) {
+                localStorage.removeItem('serveRateToken');
+                showLogin();
+            }
+        }
+
+        document.getElementById('loginBtn').addEventListener('click', login);
+        document.getElementById('loginPassword').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') login();
+        });
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            logout();
+        });
+
+        checkAuth();
 
         function showToast(message, type) {
             if (type === undefined) type = 'info';
@@ -995,10 +1139,10 @@
         }
 
         // Init admin
-        (async function initAdmin() {
+        async function initAdmin() {
             setupTabs();
             renderTab('tabDashboard');
-        })();
+        }
 
         // Tab switching
         function setupTabs() {
@@ -1313,9 +1457,6 @@
         });
 
         // ---- Back to customer portal ----
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            window.location.href = '/';
-        });
 
         // =============================================
         // EMAIL SETTINGS
