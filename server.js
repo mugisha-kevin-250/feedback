@@ -1,4 +1,5 @@
 // server.js - Updated to handle frontend serving correctly
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');

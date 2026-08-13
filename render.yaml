@@ -13,7 +13,7 @@ services:
       - key: JWT_SECRET
         value: serveRate-super-secret-key-change-in-production-2026
       - key: MONGODB_URI
-        value: mongodb+srv://mugishaaimekevin_db_user:eeettt123@cluster0.vmhyxl9.mongodb.net/?appName=Cluster0
+        value: mongodb+srv://mugishaaimekevin_db_user:eeettt123@cluster0.vmhyxl9.mongodb.net/serverate?appName=Cluster0&retryWrites=true&w=majority
       - key: EMAIL_HOST
         value: smtp.gmail.com
       - key: EMAIL_PORT
