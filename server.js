@@ -107,9 +107,9 @@ let isMongoConnected = false;
 function cleanMongoUri(uri) {
     if (!uri) return uri;
     let cleaned = uri.trim();
-    if (cleaned.includes('=')) {
-        const parts = cleaned.split('=');
-        cleaned = parts.slice(1).join('=').trim();
+    const mongoPrefix = cleaned.match(/(mongodb(?:\+srv)?:\/\/.+)/);
+    if (mongoPrefix) {
+        cleaned = mongoPrefix[1].trim();
     }
     if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
         cleaned = cleaned.slice(1, -1).trim();
