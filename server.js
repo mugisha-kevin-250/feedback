@@ -106,6 +106,7 @@ let isMongoConnected = false;
 
 // Use MongoDB Atlas or local MongoDB
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/serverate';
+console.log('🔌 MONGODB_URI:', MONGODB_URI ? '[SET] ' + MONGODB_URI.replace(/\/\/.*@/, '//***@') : '[NOT SET - using localhost]');
 
 mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
