@@ -87,7 +87,15 @@ if (EMAIL_USER && EMAIL_PASS) {
 // =============================================
 // MIDDLEWARE
 // =============================================
-app.use(cors());
+app.use(cors({
+    origin: [
+        'https://customer-feedback-rev1.onrender.com',
+        'https://*.netlify.app',
+        'http://localhost:3000',
+        'http://localhost:10000'
+    ],
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
