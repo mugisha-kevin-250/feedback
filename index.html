@@ -1051,7 +1051,7 @@
 
         function goToStep(step) {
             if (step < 0) step = 0;
-            if (step > totalQuestions + 4) step = totalQuestions + 4;
+            if (step > 4) step = 4;
             currentStep = step;
 
             dom.welcome.classList.add('hidden');
@@ -1078,20 +1078,15 @@
                 document.getElementById('customerName').value = '';
                 document.getElementById('customerEmail').value = '';
                 document.getElementById('customerPhone').value = '';
-            } else if (step >= 3 && step <= totalQuestions + 3) {
+            } else if (step === 3) {
                 dom.contactStep.classList.add('hidden');
                 dom.questions.classList.remove('hidden');
-                renderCurrentQuestion(step - 3);
-                dom.stepIndicator.textContent = `Question ${step-2} of ${totalQuestions}`;
-                if (step === totalQuestions + 3) {
-                    dom.navRow.classList.add('hidden');
-                    dom.submitRow.classList.remove('hidden');
-                } else {
-                    dom.navRow.classList.remove('hidden');
-                    dom.submitRow.classList.add('hidden');
-                }
-                renderDots(step);
-            } else if (step === totalQuestions + 4) {
+                renderAllQuestions();
+                dom.stepIndicator.textContent = 'Questions';
+                dom.navRow.classList.add('hidden');
+                dom.submitRow.classList.remove('hidden');
+                dom.prevBtnSubmit.style.display = 'none';
+            } else if (step === 4) {
                 dom.questions.classList.add('hidden');
                 dom.thankyou.classList.remove('hidden');
                 dom.stepIndicator.textContent = 'Thank you';
@@ -1107,58 +1102,59 @@
             return div.innerHTML;
         }
 
-        function renderCurrentQuestion(index) {
-            const q = questions[index];
-            if (!q) return;
-            const answer = answers[q.id] || '';
-            let html = `<div class="question-item" data-qid="${q.id}">`;
+        function renderAllQuestions() {
+            let html = '';
+            questions.forEach((q, index) => {
+                const answer = answers[q.id] || '';
+                html += `<div class="question-item" data-qid="${q.id}">`;
 
-            if (q.isServerRating) {
-                html += `<div class="server-rating-box">
-                            <div class="sub">You were served by</div>
-                            <div class="server-name">${selectedServer ? escapeHtml(selectedServer.name) : ''}</div>
-                            <div style="margin:12px 0 6px; font-size:1.2rem; font-weight:500;">How would you rate ${selectedServer ? escapeHtml(selectedServer.name) : ''}'s service?</div>
-                            <div class="star-group" data-qid="${q.id}">`;
-                for (let i=1; i<=5; i++) {
-                    const active = (parseInt(answer) === i) ? 'active' : '';
-                    html += `<button class="star-btn ${active}" data-value="${i}">${i <= parseInt(answer) ? '⭐' : '☆'}</button>`;
-                }
-                html += `</div></div>`;
-            } else {
-                html += `<div class="question-header">
-                            <span class="question-text">${escapeHtml(q.text)}</span>
-                            <span>${q.required ? '<span class="required-badge">Required</span>' : '<span class="optional-badge">Optional</span>'}</span>
-                        </div>`;
-                if (q.category) html += `<div class="category-tag">${escapeHtml(q.category)}</div>`;
-
-                if (q.type === 'star') {
-                    html += `<div class="star-group" data-qid="${q.id}">`;
+                if (q.isServerRating) {
+                    html += `<div class="server-rating-box">
+                                <div class="sub">You were served by</div>
+                                <div class="server-name">${selectedServer ? escapeHtml(selectedServer.name) : ''}</div>
+                                <div style="margin:12px 0 6px; font-size:1.2rem; font-weight:500;">How would you rate ${selectedServer ? escapeHtml(selectedServer.name) : ''}'s service?</div>
+                                <div class="star-group" data-qid="${q.id}">`;
                     for (let i=1; i<=5; i++) {
                         const active = (parseInt(answer) === i) ? 'active' : '';
                         html += `<button class="star-btn ${active}" data-value="${i}">${i <= parseInt(answer) ? '⭐' : '☆'}</button>`;
                     }
-                    html += `</div>`;
-                } else if (q.type === 'yes_no') {
-                    html += `<div class="choice-grid" data-qid="${q.id}">`;
-                    ['Yes','No'].forEach(opt => {
-                        const sel = (answer === opt) ? 'selected' : '';
-                        html += `<button class="choice-btn yes-no ${sel}" data-value="${opt}">${opt}</button>`;
-                    });
-                    html += `</div>`;
-                } else if (q.type === 'multiple_choice') {
-                    html += `<div class="choice-grid" data-qid="${q.id}">`;
-                    (q.options || []).forEach(opt => {
-                        const sel = (answer === opt) ? 'selected' : '';
-                        html += `<button class="choice-btn ${sel}" data-value="${escapeHtml(opt)}">${escapeHtml(opt)}</button>`;
-                    });
-                    html += `</div>`;
-                } else if (q.type === 'text') {
-                    html += `<textarea class="text-area" placeholder="Write your feedback…" data-qid="${q.id}">${escapeHtml(answer)}</textarea>`;
-                }
-            }
+                    html += `</div></div>`;
+                } else {
+                    html += `<div class="question-header">
+                                <span class="question-text">${escapeHtml(q.text)}</span>
+                                <span>${q.required ? '<span class="required-badge">Required</span>' : '<span class="optional-badge">Optional</span>'}</span>
+                            </div>`;
+                    if (q.category) html += `<div class="category-tag">${escapeHtml(q.category)}</div>`;
 
-            html += `<div class="error-message" id="errorMsg_${q.id}">⚠️ Please answer this question before continuing.</div>`;
-            html += `</div>`;
+                    if (q.type === 'star') {
+                        html += `<div class="star-group" data-qid="${q.id}">`;
+                        for (let i=1; i<=5; i++) {
+                            const active = (parseInt(answer) === i) ? 'active' : '';
+                            html += `<button class="star-btn ${active}" data-value="${i}">${i <= parseInt(answer) ? '⭐' : '☆'}</button>`;
+                        }
+                        html += `</div>`;
+                    } else if (q.type === 'yes_no') {
+                        html += `<div class="choice-grid" data-qid="${q.id}">`;
+                        ['Yes','No'].forEach(opt => {
+                            const sel = (answer === opt) ? 'selected' : '';
+                            html += `<button class="choice-btn yes-no ${sel}" data-value="${opt}">${opt}</button>`;
+                        });
+                        html += `</div>`;
+                    } else if (q.type === 'multiple_choice') {
+                        html += `<div class="choice-grid" data-qid="${q.id}">`;
+                        (q.options || []).forEach(opt => {
+                            const sel = (answer === opt) ? 'selected' : '';
+                            html += `<button class="choice-btn ${sel}" data-value="${escapeHtml(opt)}">${escapeHtml(opt)}</button>`;
+                        });
+                        html += `</div>`;
+                    } else if (q.type === 'text') {
+                        html += `<textarea class="text-area" placeholder="Write your feedback…" data-qid="${q.id}">${escapeHtml(answer)}</textarea>`;
+                    }
+                }
+
+                html += `<div class="error-message" id="errorMsg_${q.id}">⚠️ Please answer this question before continuing.</div>`;
+                html += `</div>`;
+            });
             dom.questions.innerHTML = html;
             bindQuestionEvents();
         }
@@ -1218,6 +1214,31 @@
         }
 
         function validateStep(step) {
+            if (step === 3) {
+                let allValid = true;
+                questions.forEach(q => {
+                    if (!q.required) return;
+                    const val = answers[q.id];
+                    const errorEl = document.getElementById(`errorMsg_${q.id}`);
+                    let isValid = false;
+                    if (q.type === 'star' || q.isServerRating) {
+                        isValid = val && parseInt(val) >= 1 && parseInt(val) <= 5;
+                    } else if (q.type === 'yes_no' || q.type === 'multiple_choice') {
+                        isValid = val && val.length > 0;
+                    } else if (q.type === 'text') {
+                        isValid = val && val.trim().length > 0;
+                    } else {
+                        isValid = true;
+                    }
+                    if (!isValid) {
+                        if (errorEl) errorEl.classList.add('visible');
+                        allValid = false;
+                    } else {
+                        if (errorEl) errorEl.classList.remove('visible');
+                    }
+                });
+                return allValid;
+            }
             const q = questions[step-3];
             if (!q) return true;
             const val = answers[q.id];
@@ -1249,7 +1270,7 @@
             if (isSubmitting) return;
             if (!validateStep(currentStep)) return;
 
-            if (currentStep === totalQuestions + 3) {
+            if (currentStep === 3) {
                 submitFeedback();
             } else {
                 goToStep(currentStep + 1);
