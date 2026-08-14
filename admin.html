@@ -899,6 +899,7 @@
                 <button data-tab="tabCustomers">Customers</button>
                 <button data-tab="tabReports">Reports</button>
                 <button id="changePasswordNav" style="margin-top:12px; background:#f8f9fa; border:2px solid #e9ecef; color:#495057; text-align:center;">Change Password</button>
+                <button id="changeEmailNav" style="margin-top:8px; background:#f8f9fa; border:2px solid #e9ecef; color:#495057; text-align:center;">Change Email</button>
             </div>
         </aside>
         <main class="admin-main">
@@ -1002,6 +1003,28 @@
                         <button type="submit" class="btn-add" id="savePasswordBtn" style="margin-bottom:0;"><i class="fas fa-save"></i> Update Password</button>
                     </div>
                     <div id="passwordStatus" style="margin-top:12px; font-size:14px; display:none;"></div>
+                </form>
+            </div>
+        </div>
+
+        <div id="emailModal" class="confirm-modal-overlay">
+            <div class="confirm-modal" style="max-width: 420px; text-align: left;">
+                <h3 style="margin-bottom: 4px; color: #212529;">Change Email</h3>
+                <p style="color: #868e96; margin-bottom: 20px; font-size: 0.9rem;">Update your admin account email address</p>
+                <form id="changeEmailForm">
+                    <div class="input-group" style="margin-bottom: 14px;">
+                        <label for="currentPasswordEmail" style="display:block; margin-bottom:6px; font-weight:600; font-size:0.8rem; color:#495057; text-transform:uppercase; letter-spacing:0.5px;">Current Password</label>
+                        <input type="password" id="currentPasswordEmail" placeholder="Enter current password" required style="width:100%; padding:10px 14px; border:2px solid #e9ecef; border-radius:10px; font-size:15px; box-sizing:border-box;" />
+                    </div>
+                    <div class="input-group" style="margin-bottom: 18px;">
+                        <label for="newEmail" style="display:block; margin-bottom:6px; font-weight:600; font-size:0.8rem; color:#495057; text-transform:uppercase; letter-spacing:0.5px;">New Email</label>
+                        <input type="email" id="newEmail" placeholder="Enter new email address" required style="width:100%; padding:10px 14px; border:2px solid #e9ecef; border-radius:10px; font-size:15px; box-sizing:border-box;" />
+                    </div>
+                    <div style="display:flex; gap:10px; justify-content:flex-end;">
+                        <button type="button" class="btn-sm" id="cancelEmailBtn" style="background:#e9ecef; color:#495057; border:none; padding:8px 18px; border-radius:8px; cursor:pointer; font-weight:600;">Cancel</button>
+                        <button type="submit" class="btn-add" id="saveEmailBtn" style="margin-bottom:0;"><i class="fas fa-save"></i> Update Email</button>
+                    </div>
+                    <div id="emailStatus" style="margin-top:12px; font-size:14px; display:none;"></div>
                 </form>
             </div>
         </div>
@@ -1150,6 +1173,42 @@
             }
         }
 
+        function showEmailModal() {
+            document.getElementById('emailModal').classList.add('active');
+            document.getElementById('currentPasswordEmail').value = '';
+            document.getElementById('newEmail').value = '';
+            document.getElementById('emailStatus').style.display = 'none';
+        }
+
+        function hideEmailModal() {
+            document.getElementById('emailModal').classList.remove('active');
+        }
+
+        async function changeEmail(e) {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentPasswordEmail').value;
+            const newEmail = document.getElementById('newEmail').value;
+            const statusEl = document.getElementById('emailStatus');
+            const btn = document.getElementById('saveEmailBtn');
+            statusEl.style.display = 'none';
+            btn.disabled = true;
+            try {
+                const data = await apiFetch('/auth/change-email', {
+                    method: 'POST',
+                    body: JSON.stringify({ oldPassword: currentPassword, newEmail }),
+                });
+                statusEl.style.color = '#00b894';
+                statusEl.textContent = 'Email updated successfully!';
+                document.getElementById('changeEmailForm').reset();
+                setTimeout(hideEmailModal, 1500);
+            } catch (err) {
+                statusEl.style.color = '#e17055';
+                statusEl.textContent = err.message || 'Failed to update email';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
         async function checkAuth() {
             const token = localStorage.getItem('serveRateToken');
             if (!token) {
@@ -1178,6 +1237,13 @@
         document.getElementById('changePasswordForm').addEventListener('submit', changePassword);
         document.getElementById('passwordModal').addEventListener('click', (e) => {
             if (e.target === document.getElementById('passwordModal')) hidePasswordModal();
+        });
+
+        document.getElementById('changeEmailNav').addEventListener('click', showEmailModal);
+        document.getElementById('cancelEmailBtn').addEventListener('click', hideEmailModal);
+        document.getElementById('changeEmailForm').addEventListener('submit', changeEmail);
+        document.getElementById('emailModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('emailModal')) hideEmailModal();
         });
 
         checkAuth();

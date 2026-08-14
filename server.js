@@ -380,6 +380,69 @@ app.post('/api/auth/change-password', authenticateToken, [
     }
 });
 
+// Change email
+app.post('/api/auth/change-email', authenticateToken, [
+    body('oldPassword').notEmpty().withMessage('Current password required'),
+    body('newEmail').isEmail().withMessage('Valid email is required'),
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: errors.array()[0].msg });
+    }
+
+    const { oldPassword, newEmail } = req.body;
+    const userId = req.user.id;
+    const trimmedEmail = newEmail.trim().toLowerCase();
+
+    try {
+        let user = null;
+        let password_hash = null;
+
+        if (isMongoConnected) {
+            const db = mongoose.connection.db;
+            user = await db.collection('managers').findOne({ _id: new mongoose.Types.ObjectId(userId) });
+            if (user) password_hash = user.password_hash;
+
+            const existing = await db.collection('managers').findOne({ email: trimmedEmail, _id: { $ne: new mongoose.Types.ObjectId(userId) } });
+            if (existing) {
+                return res.status(409).json({ error: 'Email is already in use' });
+            }
+        } else {
+            user = fallbackData.managers.find(m => m.id === userId);
+            if (user) password_hash = user.password_hash;
+
+            const existing = fallbackData.managers.find(m => m.email === trimmedEmail && m.id !== userId);
+            if (existing) {
+                return res.status(409).json({ error: 'Email is already in use' });
+            }
+        }
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const valid = await bcrypt.compare(oldPassword, password_hash);
+        if (!valid) {
+            return res.status(401).json({ error: 'Current password is incorrect' });
+        }
+
+        if (isMongoConnected) {
+            await db.collection('managers').updateOne(
+                { _id: new mongoose.Types.ObjectId(userId) },
+                { $set: { email: trimmedEmail, updated_at: new Date() } }
+            );
+        } else {
+            user.email = trimmedEmail;
+            saveFallbackDataToFile();
+        }
+
+        res.json({ success: true, message: 'Email updated successfully', email: trimmedEmail });
+    } catch (err) {
+        console.error('Change email error:', err);
+        res.status(500).json({ error: 'Failed to change email' });
+    }
+});
+
 // Logout
 app.post('/api/auth/logout',  (req, res) => {
     res.json({ success: true });
@@ -422,10 +485,10 @@ app.get('/api/servers', authenticateToken, async (req, res) => {
             
             const serverIds = servers.map(s => s._id);
             const feedbackStats = await db.collection('feedback').aggregate([
-                { $match: { server_id: { $in: serverIds }, overall_rating: { $ne: null } } },
+                { $match: { server_id: { $in: serverIds }, server_rating: { $ne: null } } },
                 { $group: { 
                     _id: '$server_id', 
-                    avgRating: { $avg: '$overall_rating' }, 
+                    avgRating: { $avg: '$server_rating' }, 
                     reviewCount: { $sum: 1 } 
                 }}
             ]).toArray();
@@ -447,9 +510,9 @@ app.get('/api/servers', authenticateToken, async (req, res) => {
             }));
         } else {
             servers = fallbackData.servers.map(s => {
-                const serverFeedback = fallbackData.feedback.filter(f => f.server_id === s.id && f.overall_rating !== null);
+                const serverFeedback = fallbackData.feedback.filter(f => f.server_id === s.id && f.server_rating !== null);
                 const avgRating = serverFeedback.length > 0 
-                    ? Math.round((serverFeedback.reduce((a, b) => a + (b.overall_rating || 0), 0) / serverFeedback.length) * 10) / 10 
+                    ? Math.round((serverFeedback.reduce((a, b) => a + (b.server_rating || 0), 0) / serverFeedback.length) * 10) / 10 
                     : 0;
                 return {
                     id: s.id,
@@ -474,37 +537,13 @@ app.get('/api/servers/active', async (req, res) => {
         if (isMongoConnected) {
             const db = mongoose.connection.db;
             servers = await db.collection('servers').find({ status: 'active' }).sort({ name: 1 }).toArray();
-            servers = servers.map(s => ({
-                id: s._id,
-                name: s.name,
-                status: s.status,
-                avgRating: statsMap[s._id.toString()]?.avgRating || 0,
-                reviewCount: statsMap[s._id.toString()]?.reviewCount || 0
-            }));
-        } else {
-            servers = fallbackData.servers.filter(s => s.status === 'active');
-        }
-        res.json(servers);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to load servers' });
-    }
-});
-
-// Get active servers ranked by rating (public)
-app.get('/api/servers/ranked', async (req, res) => {
-    try {
-        let servers = [];
-        if (isMongoConnected) {
-            const db = mongoose.connection.db;
-            servers = await db.collection('servers').find({ status: 'active' }).sort({ name: 1 }).toArray();
             
             const serverIds = servers.map(s => s._id);
             const feedbackStats = await db.collection('feedback').aggregate([
-                { $match: { server_id: { $in: serverIds }, overall_rating: { $ne: null } } },
+                { $match: { server_id: { $in: serverIds }, server_rating: { $ne: null } } },
                 { $group: { 
                     _id: '$server_id', 
-                    avgRating: { $avg: '$overall_rating' }, 
+                    avgRating: { $avg: '$server_rating' }, 
                     reviewCount: { $sum: 1 } 
                 }}
             ]).toArray();
@@ -526,9 +565,64 @@ app.get('/api/servers/ranked', async (req, res) => {
             }));
         } else {
             servers = fallbackData.servers.filter(s => s.status === 'active').map(s => {
-                const serverFeedback = fallbackData.feedback.filter(f => f.server_id === s.id && f.overall_rating !== null);
+                const serverFeedback = fallbackData.feedback.filter(f => f.server_id === s.id && f.server_rating !== null);
                 const avgRating = serverFeedback.length > 0 
-                    ? Math.round((serverFeedback.reduce((a, b) => a + (b.overall_rating || 0), 0) / serverFeedback.length) * 10) / 10 
+                    ? Math.round((serverFeedback.reduce((a, b) => a + (b.server_rating || 0), 0) / serverFeedback.length) * 10) / 10 
+                    : 0;
+                return {
+                    id: s.id,
+                    name: s.name,
+                    status: s.status,
+                    avgRating: avgRating,
+                    reviewCount: serverFeedback.length
+                };
+            });
+        }
+        res.json(servers);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load servers' });
+    }
+});
+
+// Get active servers ranked by rating (public)
+app.get('/api/servers/ranked', async (req, res) => {
+    try {
+        let servers = [];
+        if (isMongoConnected) {
+            const db = mongoose.connection.db;
+            servers = await db.collection('servers').find({ status: 'active' }).sort({ name: 1 }).toArray();
+            
+            const serverIds = servers.map(s => s._id);
+            const feedbackStats = await db.collection('feedback').aggregate([
+                { $match: { server_id: { $in: serverIds }, server_rating: { $ne: null } } },
+                { $group: { 
+                    _id: '$server_id', 
+                    avgRating: { $avg: '$server_rating' }, 
+                    reviewCount: { $sum: 1 } 
+                }}
+            ]).toArray();
+            
+            const statsMap = {};
+            feedbackStats.forEach(f => {
+                statsMap[f._id.toString()] = {
+                    avgRating: f.avgRating ? Math.round(f.avgRating * 10) / 10 : 0,
+                    reviewCount: f.reviewCount || 0
+                };
+            });
+            
+            servers = servers.map(s => ({
+                id: s._id,
+                name: s.name,
+                status: s.status,
+                avgRating: statsMap[s._id.toString()]?.avgRating || 0,
+                reviewCount: statsMap[s._id.toString()]?.reviewCount || 0
+            }));
+        } else {
+            servers = fallbackData.servers.filter(s => s.status === 'active').map(s => {
+                const serverFeedback = fallbackData.feedback.filter(f => f.server_id === s.id && f.server_rating !== null);
+                const avgRating = serverFeedback.length > 0 
+                    ? Math.round((serverFeedback.reduce((a, b) => a + (b.server_rating || 0), 0) / serverFeedback.length) * 10) / 10 
                     : 0;
                 return {
                     id: s.id,
@@ -940,7 +1034,7 @@ app.post('/api/feedback', [
             }
         }
 
-        if (overallRating === null && serverRating !== undefined) {
+        if (overallRating === null && serverRating != null) {
             overallRating = parseFloat(serverRating);
         }
 
@@ -1545,6 +1639,7 @@ app.get('/api/analytics/reports', authenticateToken, async (req, res) => {
 
             // Server rankings
             const serverRankings = await db.collection('feedback').aggregate([
+                { $match: { server_rating: { $ne: null } } },
                 {
                     $group: {
                         _id: '$server_id',
