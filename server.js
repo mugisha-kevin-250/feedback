@@ -305,7 +305,11 @@ async function seedDatabase() {
         } else {
             const q6 = await db.collection('questions').findOne({ id: 'q6' });
             if (q6 && q6.display_order !== 9) {
-                await db.collection('questions').updateOne({ id: 'q6' }, { $set: { display_order: 9, updated_at: new Date() } });
+                const updateFields = { display_order: 9, updated_at: new Date() };
+                if (q6.text === 'Would you recommend us?') {
+                    updateFields.text = 'Will you return?';
+                }
+                await db.collection('questions').updateOne({ id: 'q6' }, { $set: updateFields });
                 await db.collection('questions').updateOne({ id: 'q7' }, { $set: { display_order: 7, updated_at: new Date() } });
                 await db.collection('questions').updateOne({ id: 'q8' }, { $set: { display_order: 8, updated_at: new Date() } });
                 console.log('✅ Question order updated: q6 moved to last');

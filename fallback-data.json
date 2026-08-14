@@ -159,8 +159,8 @@
     },
     {
       "id": "q6",
-      "text": "Would you recommend us?",
-      "category": "Recommendation",
+      "text": "Will you return?",
+      "category": "Feedback",
       "type": "yes_no",
       "options": [],
       "required": true,
