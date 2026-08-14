@@ -115,6 +115,8 @@ app.use(cors({
         'https://customer-feedback-rev1.onrender.com',
         'https://tablevoice.netlify.app',
         /https:\/\/.*\.netlify\.app/,
+        /https:\/\/.*\.pages\.dev/,
+        /https:\/\/.*\.cloudflarepages\.com/,
         'http://localhost:3000',
         'http://localhost:10000'
     ],
