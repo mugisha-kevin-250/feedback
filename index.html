@@ -889,7 +889,6 @@
                 </div>
                 <div id="contactError" class="error-message" style="text-align: center; margin-bottom: 8px;">⚠️ Please fill in all fields.</div>
                 <button class="btn-primary" id="submitContactBtn" style="width: 100%; font-size: 1.2rem; padding: 14px 32px; margin-top: 8px;"><i class="fas fa-check"></i> Continue</button>
-                <button class="btn-outline" id="skipContactBtn" style="width: 100%; margin-top: 8px; font-size: 1rem; padding: 12px 24px;">Skip</button>
             </div>
         </div>
         <!-- Questions container -->
@@ -1354,10 +1353,6 @@
             } catch (err) {
                 await showAlertModal('Failed to save contact info: ' + err.message);
             }
-        });
-
-        document.getElementById('skipContactBtn').addEventListener('click', () => {
-            goToStep(3);
         });
 
         function showThankyouAndReset() {
