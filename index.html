@@ -1041,6 +1041,13 @@
                     required: true,
                     isServerRating: true
                 });
+                questions.push({
+                    id: 'will_return',
+                    text: 'Will you return?',
+                    type: 'yes_no',
+                    category: 'Feedback',
+                    required: true
+                });
                 totalQuestions = questions.length;
                 return questions;
             } catch (err) {
