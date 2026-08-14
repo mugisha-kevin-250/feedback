@@ -1298,7 +1298,7 @@
                 isSubmitting = false;
                 dom.submitBtn.disabled = false;
                 dom.submitBtn.innerHTML = '<i class="fas fa-check"></i> Submit Feedback';
-                goToStep(totalQuestions + 4);
+                showThankyouAndReset();
             } catch (err) {
                 isSubmitting = false;
                 dom.submitBtn.disabled = false;
