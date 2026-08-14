@@ -949,7 +949,7 @@ app.post('/api/feedback', [
         return res.status(400).json({ error: errors.array()[0].msg });
     }
 
-    const { serverId, answers = [], serverRating, comment, deviceInfo = {} } = req.body;
+    const { serverId, answers = [], serverRating, comment, deviceInfo = {}, customerName, customerEmail, customerPhone } = req.body;
 
     try {
         // Verify server exists and is active
@@ -1002,6 +1002,9 @@ app.post('/api/feedback', [
                 server_rating: serverRating || null,
                 comment: comment || null,
                 device_info: deviceInfo,
+                customer_name: customerName || null,
+                customer_email: customerEmail || null,
+                customer_phone: customerPhone || null,
                 created_at: new Date()
             });
             feedbackId = result.insertedId;
@@ -1026,6 +1029,9 @@ app.post('/api/feedback', [
                 server_rating: serverRating || null,
                 comment: comment || null,
                 device_info: deviceInfo,
+                customer_name: customerName || null,
+                customer_email: customerEmail || null,
+                customer_phone: customerPhone || null,
                 created_at: new Date()
             });
 
@@ -1094,6 +1100,32 @@ app.get('/api/feedback', authenticateToken, async (req, res) => {
             const serverMap = {};
             servers.forEach(s => { serverMap[s._id.toString()] = s.name; });
 
+            const feedbackIds = feedbacks.map(f => f._id);
+            const feedbackAnswers = await db.collection('feedbackanswers')
+                .find({ feedback_id: { $in: feedbackIds } })
+                .toArray();
+
+            const questionIds = [...new Set(feedbackAnswers.map(fa => fa.question_id))];
+            const questions = await db.collection('questions')
+                .find({ _id: { $in: questionIds } })
+                .toArray();
+            const questionMap = {};
+            questions.forEach(q => { questionMap[q._id.toString()] = q; });
+
+            const answersByFeedback = {};
+            feedbackAnswers.forEach(fa => {
+                const fid = fa.feedback_id.toString();
+                if (!answersByFeedback[fid]) answersByFeedback[fid] = [];
+                const q = questionMap[fa.question_id.toString()];
+                if (q && q.type === 'text') {
+                    answersByFeedback[fid].push({
+                        questionId: fa.question_id,
+                        questionText: q.text,
+                        answer: fa.answer
+                    });
+                }
+            });
+
             items = feedbacks.map(f => ({
                 id: f._id,
                 serverId: f.server_id,
@@ -1101,7 +1133,11 @@ app.get('/api/feedback', authenticateToken, async (req, res) => {
                 overallRating: f.overall_rating,
                 serverRating: f.server_rating,
                 comment: f.comment,
-                createdAt: f.created_at
+                customerName: f.customer_name,
+                customerEmail: f.customer_email,
+                customerPhone: f.customer_phone,
+                createdAt: f.created_at,
+                textAnswers: answersByFeedback[f._id.toString()] || []
             }));
         } else {
             let feedbacks = [...fallbackData.feedback];
@@ -1121,15 +1157,35 @@ app.get('/api/feedback', authenticateToken, async (req, res) => {
             const serverMap = {};
             fallbackData.servers.forEach(s => { serverMap[s.id] = s.name; });
 
-            items = paginated.map(f => ({
-                id: f.id,
-                serverId: f.server_id,
-                serverName: serverMap[f.server_id] || 'Unknown',
-                overallRating: f.overall_rating,
-                serverRating: f.server_rating,
-                comment: f.comment,
-                createdAt: f.created_at
-            }));
+            const questionMap = {};
+            fallbackData.questions.forEach(q => { questionMap[q.id] = q; });
+
+            items = paginated.map(f => {
+                const feedbackAnswers = fallbackData.feedbackAnswers.filter(fa => fa.feedback_id === f.id);
+                const textAnswers = feedbackAnswers
+                    .map(fa => {
+                        const q = questionMap[fa.question_id];
+                        return q && q.type === 'text' ? {
+                            questionId: fa.question_id,
+                            questionText: q.text,
+                            answer: fa.answer
+                        } : null;
+                    })
+                    .filter(Boolean);
+                return {
+                    id: f.id,
+                    serverId: f.server_id,
+                    serverName: serverMap[f.server_id] || 'Unknown',
+                    overallRating: f.overall_rating,
+                    serverRating: f.server_rating,
+                    comment: f.comment,
+                    customerName: f.customer_name,
+                    customerEmail: f.customer_email,
+                    customerPhone: f.customer_phone,
+                    createdAt: f.created_at,
+                    textAnswers: textAnswers
+                };
+            });
         }
 
         res.json({
@@ -1187,6 +1243,9 @@ app.get('/api/feedback/:id', authenticateToken, async (req, res) => {
                 overallRating: feedback.overall_rating,
                 serverRating: feedback.server_rating,
                 comment: feedback.comment,
+                customerName: feedback.customer_name,
+                customerEmail: feedback.customer_email,
+                customerPhone: feedback.customer_phone,
                 createdAt: feedback.created_at,
                 answers
             });
@@ -1215,6 +1274,9 @@ app.get('/api/feedback/:id', authenticateToken, async (req, res) => {
                 overallRating: feedback.overall_rating,
                 serverRating: feedback.server_rating,
                 comment: feedback.comment,
+                customerName: feedback.customer_name,
+                customerEmail: feedback.customer_email,
+                customerPhone: feedback.customer_phone,
                 createdAt: feedback.created_at,
                 answers
             });

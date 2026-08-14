@@ -939,9 +939,9 @@
         </div>
 
          <div id="tabFeedback" class="tab-content">
-             <div class="table-wrapper">
+             <div class="table-wrapper" style="overflow-x: auto;">
                  <table>
-                     <thead><tr><th>Server</th><th>Overall</th><th>Server Rating</th><th>Comment</th><th>Date</th></tr></thead>
+                     <thead><tr><th>Customer</th><th>Server</th><th>Overall</th><th>Server Rating</th><th>Written Feedback</th><th>Date</th></tr></thead>
                      <tbody id="feedbackTableBody"></tbody>
                  </table>
              </div>
@@ -1419,17 +1419,31 @@
             const data = await apiFetch('/feedback');
             const items = data.items || [];
             const tbody = document.getElementById('feedbackTableBody');
-            tbody.innerHTML = items.map(f => `
-                <tr>
-                    <td>${escapeHtml(f.serverName || 'Unknown')}</td>
-                    <td>⭐ ${f.overallRating || 0}</td>
-                    <td>⭐ ${f.serverRating || 0}</td>
-                    <td>${escapeHtml(f.comment || '-')}</td>
-                    <td>${new Date(f.createdAt).toLocaleDateString()}</td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = items.map(f => {
+                let feedbackText = '';
+                if (f.textAnswers && f.textAnswers.length > 0) {
+                    feedbackText = f.textAnswers.map(ta => `<div style="margin-bottom:6px;"><strong style="color:#475569;">${escapeHtml(ta.questionText)}</strong><br>${escapeHtml(ta.answer)}</div>`).join('');
+                }
+                if (f.comment) {
+                    feedbackText += `<div style="margin-top:6px; color:#475569;"><strong>Additional comments:</strong> ${escapeHtml(f.comment)}</div>`;
+                }
+                if (!feedbackText) feedbackText = '-';
+                const customerInfo = f.customerName 
+                    ? `<div style="font-weight:600; color:#0b1a33;">${escapeHtml(f.customerName)}</div><div style="font-size:0.8rem; color:#475569;">${escapeHtml(f.customerEmail || '')}${f.customerEmail && f.customerPhone ? '<br>' : ''}${escapeHtml(f.customerPhone || '')}</div>`
+                    : '<span style="color:#94a3b8;">Anonymous</span>';
+                return `
+                    <tr>
+                        <td>${customerInfo}</td>
+                        <td>${escapeHtml(f.serverName || 'Unknown')}</td>
+                        <td>⭐ ${f.overallRating || 0}</td>
+                        <td>⭐ ${f.serverRating || 0}</td>
+                        <td style="max-width: 300px; white-space: normal;">${feedbackText}</td>
+                        <td>${new Date(f.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                `;
+            }).join('');
             if (items.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No feedback found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;">No feedback found</td></tr>';
             }
         }
 

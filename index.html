@@ -869,40 +869,37 @@
             <p>We'd love to hear your feedback. Your voice helps us improve.</p>
             <button class="btn-primary" id="startFeedbackBtn"><i class="fas fa-arrow-right"></i> Start Feedback</button>
         </div>
+        <!-- Contact step (step 2) -->
+        <div id="contactStepScreen" class="welcome-screen hidden">
+            <div class="icon-large"><i class="fas fa-address-card"></i></div>
+            <h1>Stay Connected</h1>
+            <p>Leave your details to receive event invites and announcements!</p>
+            <div style="margin-top:20px; padding: 24px; background: #f8fafc; border-radius: 24px; border: 2px solid #edf2f7; text-align: left; max-width: 420px; margin-left: auto; margin-right: auto;">
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #1e293b; margin-bottom: 4px;">Your Name</label>
+                    <input type="text" id="customerName" placeholder="Enter your name" style="width: 100%; padding: 12px 16px; border: 2px solid #dce1ec; border-radius: 20px; font-size: 1rem; font-family: inherit;" />
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #1e293b; margin-bottom: 4px;">Email</label>
+                    <input type="email" id="customerEmail" placeholder="your@email.com" style="width: 100%; padding: 12px 16px; border: 2px solid #dce1ec; border-radius: 20px; font-size: 1rem; font-family: inherit;" />
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #1e293b; margin-bottom: 4px;">Phone Number</label>
+                    <input type="tel" id="customerPhone" placeholder="+1 234 567 890" style="width: 100%; padding: 12px 16px; border: 2px solid #dce1ec; border-radius: 20px; font-size: 1rem; font-family: inherit;" />
+                </div>
+                <div id="contactError" class="error-message" style="text-align: center; margin-bottom: 8px;">⚠️ Please fill in all fields.</div>
+                <button class="btn-primary" id="submitContactBtn" style="width: 100%; font-size: 1.2rem; padding: 14px 32px; margin-top: 8px;"><i class="fas fa-check"></i> Continue</button>
+                <button class="btn-outline" id="skipContactBtn" style="width: 100%; margin-top: 8px; font-size: 1rem; padding: 12px 24px;">Skip</button>
+            </div>
+        </div>
         <!-- Questions container -->
         <div id="questionsContainer" class="question-container hidden"></div>
         <!-- Thank you -->
         <div id="thankyouScreen" class="thankyou-screen hidden">
-            <div id="contactFormSection">
-                <div class="big-icon"><i class="fas fa-heart" style="color:#ef4444;"></i></div>
-                <h2>Thank You! ❤️</h2>
-                <p>Your feedback has been received.<br>We appreciate your time.</p>
-                <div style="margin-top:20px; padding: 24px; background: #f8fafc; border-radius: 24px; border: 2px solid #edf2f7; text-align: left;">
-                    <h3 style="font-size: 1.3rem; font-weight: 600; color: #0b1a33; margin-bottom: 12px; text-align: center;">Stay Connected</h3>
-                    <p style="font-size: 1rem; color: #475569; margin-bottom: 16px; text-align: center;">Leave your email and phone to receive event invites and announcements!</p>
-                    <div style="margin-bottom: 12px;">
-                        <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #1e293b; margin-bottom: 4px;">Your Name</label>
-                        <input type="text" id="customerName" placeholder="Enter your name" style="width: 100%; padding: 12px 16px; border: 2px solid #dce1ec; border-radius: 20px; font-size: 1rem; font-family: inherit;" />
-                    </div>
-                    <div style="margin-bottom: 12px;">
-                        <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #1e293b; margin-bottom: 4px;">Email</label>
-                        <input type="email" id="customerEmail" placeholder="your@email.com" style="width: 100%; padding: 12px 16px; border: 2px solid #dce1ec; border-radius: 20px; font-size: 1rem; font-family: inherit;" />
-                    </div>
-                    <div style="margin-bottom: 12px;">
-                        <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #1e293b; margin-bottom: 4px;">Phone Number</label>
-                        <input type="tel" id="customerPhone" placeholder="+1 234 567 890" style="width: 100%; padding: 12px 16px; border: 2px solid #dce1ec; border-radius: 20px; font-size: 1rem; font-family: inherit;" />
-                    </div>
-                    <div id="contactError" class="error-message" style="text-align: center; margin-bottom: 8px;">⚠️ Please fill in all fields.</div>
-                    <button class="btn-primary" id="submitContactBtn" style="width: 100%; font-size: 1.2rem; padding: 14px 32px; margin-top: 8px;"><i class="fas fa-check"></i> Submit Contact Info</button>
-                    <button class="btn-outline" id="skipContactBtn" style="width: 100%; margin-top: 8px; font-size: 1rem; padding: 12px 24px;">Skip</button>
-                </div>
-            </div>
-            <div id="thankyouMessage" class="hidden">
-                <div class="big-icon"><i class="fas fa-heart" style="color:#ef4444;"></i></div>
-                <h2>Thank You! ❤️</h2>
-                <p>Your feedback has been received.<br>We appreciate your time.</p>
-                <div style="margin-top:24px; font-size:1.2rem; color:#94a3b8;"><i class="fas fa-spinner fa-pulse"></i> returning…</div>
-            </div>
+            <div class="big-icon"><i class="fas fa-heart" style="color:#ef4444;"></i></div>
+            <h2>Thank You! ❤️</h2>
+            <p>Your feedback has been received.<br>We appreciate your time.</p>
+            <div style="margin-top:24px; font-size:1.2rem; color:#94a3b8;"><i class="fas fa-spinner fa-pulse"></i> returning…</div>
         </div>
         <!-- Navigation -->
         <div id="navRow" class="nav-row hidden">
@@ -935,6 +932,7 @@
             serverList: document.getElementById('serverList'),
             noServersMsg: document.getElementById('noServersMsg'),
             welcome: document.getElementById('welcomeScreen'),
+            contactStep: document.getElementById('contactStepScreen'),
             questions: document.getElementById('questionsContainer'),
             thankyou: document.getElementById('thankyouScreen'),
             navRow: document.getElementById('navRow'),
@@ -1053,10 +1051,11 @@
 
         function goToStep(step) {
             if (step < 0) step = 0;
-            if (step > totalQuestions + 2) step = totalQuestions + 2;
+            if (step > totalQuestions + 4) step = totalQuestions + 4;
             currentStep = step;
 
             dom.welcome.classList.add('hidden');
+            dom.contactStep.classList.add('hidden');
             dom.questions.classList.add('hidden');
             dom.thankyou.classList.add('hidden');
             dom.navRow.classList.add('hidden');
@@ -1070,12 +1069,18 @@
                 dom.serverSelect.classList.add('hidden');
                 dom.welcome.classList.remove('hidden');
                 dom.stepIndicator.textContent = 'Welcome';
-            } else if (step >= 2 && step <= totalQuestions + 1) {
+            } else if (step === 2) {
                 dom.welcome.classList.add('hidden');
+                dom.contactStep.classList.remove('hidden');
+                dom.stepIndicator.textContent = 'Contact Info';
+                dom.navRow.classList.add('hidden');
+                dom.submitRow.classList.add('hidden');
+            } else if (step >= 3 && step <= totalQuestions + 3) {
+                dom.contactStep.classList.add('hidden');
                 dom.questions.classList.remove('hidden');
-                renderCurrentQuestion(step - 2);
-                dom.stepIndicator.textContent = `Question ${step-1} of ${totalQuestions}`;
-                if (step === totalQuestions + 1) {
+                renderCurrentQuestion(step - 3);
+                dom.stepIndicator.textContent = `Question ${step-2} of ${totalQuestions}`;
+                if (step === totalQuestions + 3) {
                     dom.navRow.classList.add('hidden');
                     dom.submitRow.classList.remove('hidden');
                 } else {
@@ -1083,13 +1088,12 @@
                     dom.submitRow.classList.add('hidden');
                 }
                 renderDots(step);
-            } else if (step === totalQuestions + 2) {
+            } else if (step === totalQuestions + 4) {
+                dom.questions.classList.add('hidden');
                 dom.thankyou.classList.remove('hidden');
                 dom.stepIndicator.textContent = 'Thank you';
                 dom.navRow.classList.add('hidden');
                 dom.submitRow.classList.add('hidden');
-                document.getElementById('contactFormSection').classList.remove('hidden');
-                document.getElementById('thankyouMessage').classList.add('hidden');
             }
         }
 
@@ -1203,7 +1207,7 @@
 
         function renderDots(step) {
             dom.progressDots.innerHTML = '';
-            for (let i=2; i<=totalQuestions + 1; i++) {
+            for (let i=3; i<=totalQuestions + 3; i++) {
                 const dot = document.createElement('span');
                 dot.className = 'dot' + (i === step ? ' active' : '');
                 dom.progressDots.appendChild(dot);
@@ -1211,7 +1215,7 @@
         }
 
         function validateStep(step) {
-            const q = questions[step-2];
+            const q = questions[step-3];
             if (!q) return true;
             const val = answers[q.id];
             const errorEl = document.getElementById(`errorMsg_${q.id}`);
@@ -1242,7 +1246,7 @@
             if (isSubmitting) return;
             if (!validateStep(currentStep)) return;
 
-            if (currentStep === totalQuestions + 1) {
+            if (currentStep === totalQuestions + 3) {
                 submitFeedback();
             } else {
                 goToStep(currentStep + 1);
@@ -1268,11 +1272,18 @@
                 }
             }
 
+            const customerName = document.getElementById('customerName').value.trim();
+            const customerEmail = document.getElementById('customerEmail').value.trim();
+            const customerPhone = document.getElementById('customerPhone').value.trim();
+
             const payload = {
                 serverId: selectedServer.id,
                 answers: answerArray,
                 serverRating: answers['server_rating'] || null,
                 comment: answers['q8'] || '',
+                customerName: customerName || null,
+                customerEmail: customerEmail || null,
+                customerPhone: customerPhone || null,
                 deviceInfo: {
                     userAgent: navigator.userAgent,
                     screenSize: `${window.innerWidth}x${window.innerHeight}`
@@ -1287,7 +1298,7 @@
                 isSubmitting = false;
                 dom.submitBtn.disabled = false;
                 dom.submitBtn.innerHTML = '<i class="fas fa-check"></i> Submit Feedback';
-                goToStep(totalQuestions + 2);
+                goToStep(totalQuestions + 4);
             } catch (err) {
                 isSubmitting = false;
                 dom.submitBtn.disabled = false;
@@ -1339,35 +1350,42 @@
                     method: 'POST',
                     body: JSON.stringify({ name, email, phone })
                 });
-                showThankyouAndReset();
+                goToStep(3);
             } catch (err) {
                 await showAlertModal('Failed to save contact info: ' + err.message);
             }
         });
 
         document.getElementById('skipContactBtn').addEventListener('click', () => {
-            showThankyouAndReset();
+            goToStep(3);
         });
 
         function showThankyouAndReset() {
-            document.getElementById('contactFormSection').classList.add('hidden');
-            document.getElementById('thankyouMessage').classList.remove('hidden');
+            dom.thankyou.classList.remove('hidden');
             answers = {};
             selectedServer = null;
             dom.serverBadge.textContent = 'Select server';
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerEmail').value = '';
+            document.getElementById('customerPhone').value = '';
             setTimeout(() => goToStep(0), 4000);
         }
 
         // Click on server badge to go back to server selection
         dom.serverBadgeContainer.addEventListener('click', async () => {
-            if (currentStep >= 2) {
+            if (currentStep >= 3) {
                 const confirmed = await showConfirmModal('Going back will reset your progress. Continue?', 'Continue');
                 if (confirmed) {
                     goToStep(0);
                 }
+            } else if (currentStep === 2) {
+                goToStep(0);
             } else {
                 goToStep(0);
             }
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerEmail').value = '';
+            document.getElementById('customerPhone').value = '';
         });
 
         // Keyboard shortcuts
