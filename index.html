@@ -168,7 +168,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 6px;
+            justify-content: center;
+            gap: 4px;
             scroll-snap-align: start;
         }
         .server-btn:active {
@@ -182,26 +183,20 @@
             color: white;
             box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
         }
-        .server-rating {
-            font-size: 0.85rem;
+        .server-rank-icon {
+            font-size: 1.6rem;
+            line-height: 1;
+        }
+        .server-name {
+            font-size: 1.1rem;
             font-weight: 700;
-            opacity: 0.9;
-            display: flex;
-            align-items: center;
-            gap: 4px;
+            line-height: 1.2;
         }
-        .server-rank {
-            font-size: 0.85rem;
-            font-weight: 700;
-            opacity: 0.9;
-        }
-        .server-rating .stars {
-            color: #fbbf24;
-            font-size: 0.9rem;
-        }
-        .server-rating .rating-num {
+        .server-stars {
             font-size: 0.8rem;
-            opacity: 0.8;
+            font-weight: 700;
+            opacity: 0.85;
+            line-height: 1;
         }
         .server-btn.inactive {
             opacity: 0.4;
@@ -994,9 +989,6 @@
                     btn.className = 'server-btn';
                     if (selectedServer && selectedServer.id === s.id) btn.classList.add('selected');
                     
-                    const nameSpan = document.createElement('span');
-                    nameSpan.textContent = s.name || s.id;
-                    
                     const rank = idx + 1;
                     let icon = '👤';
                     if (rank === 1) icon = '👑';
@@ -1004,12 +996,21 @@
                     else if (rank === 3) icon = '🥉';
                     const totalStars = s.totalStars || 0;
                     
-                    const rankSpan = document.createElement('span');
-                    rankSpan.className = 'server-rank';
-                    rankSpan.textContent = `${icon} ${totalStars} stars`;
+                    const iconSpan = document.createElement('span');
+                    iconSpan.className = 'server-rank-icon';
+                    iconSpan.textContent = icon;
                     
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'server-name';
+                    nameSpan.textContent = s.name || s.id;
+                    
+                    const starsSpan = document.createElement('span');
+                    starsSpan.className = 'server-stars';
+                    starsSpan.textContent = `${totalStars} stars`;
+                    
+                    btn.appendChild(iconSpan);
                     btn.appendChild(nameSpan);
-                    btn.appendChild(rankSpan);
+                    btn.appendChild(starsSpan);
                     btn.dataset.id = s.id;
                     btn.addEventListener('click', () => {
                         document.querySelectorAll('.server-btn').forEach(b => b.classList.remove('selected'));

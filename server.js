@@ -16,6 +16,7 @@ const app = express();
 app.set('trust proxy', 1);
 
 const FALLBACK_DATA_FILE = path.join(__dirname, 'fallback-data.json');
+const RANKING_RESET_FILE = path.join(__dirname, 'ranking-reset.json');
 
 function loadFallbackDataFromFile() {
     try {
@@ -37,6 +38,69 @@ function saveFallbackDataToFile() {
         }
     } catch (err) {
         console.error('Failed to save fallback data to file:', err);
+    }
+}
+
+function getLastRankingReset() {
+    try {
+        if (fs.existsSync(RANKING_RESET_FILE)) {
+            const data = fs.readFileSync(RANKING_RESET_FILE, 'utf8');
+            const parsed = JSON.parse(data);
+            return parsed.lastReset ? new Date(parsed.lastReset) : null;
+        }
+    } catch (err) {
+        console.error('Failed to load ranking reset date:', err);
+    }
+    return null;
+}
+
+function setLastRankingReset() {
+    try {
+        fs.writeFileSync(RANKING_RESET_FILE, JSON.stringify({ lastReset: new Date().toISOString() }, null, 2));
+    } catch (err) {
+        console.error('Failed to save ranking reset date:', err);
+    }
+}
+
+async function checkAndResetRankingsIfNeeded() {
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+
+    let lastReset = null;
+    if (isMongoConnected) {
+        try {
+            const db = mongoose.connection.db;
+            const record = await db.collection('ranking_resets').findOne({ _id: 'last_reset' });
+            if (record && record.date) lastReset = new Date(record.date);
+        } catch (err) {
+            console.error('Failed to check ranking reset in MongoDB:', err);
+        }
+    } else {
+        lastReset = getLastRankingReset();
+    }
+
+    if (!lastReset || lastReset < twoMonthsAgo) {
+        console.log('🔄 Resetting rankings (2 month cycle)...');
+        if (isMongoConnected) {
+            try {
+                const db = mongoose.connection.db;
+                await db.collection('feedback').deleteMany({});
+                await db.collection('feedbackanswers').deleteMany({});
+                await db.collection('ranking_resets').updateOne(
+                    { _id: 'last_reset' },
+                    { $set: { date: new Date() } },
+                    { upsert: true }
+                );
+            } catch (err) {
+                console.error('Failed to reset rankings in MongoDB:', err);
+            }
+        } else {
+            fallbackData.feedback = [];
+            fallbackData.feedbackAnswers = [];
+            saveFallbackDataToFile();
+            setLastRankingReset();
+        }
+        console.log('✅ Rankings reset complete');
     }
 }
 const PORT = process.env.PORT || 3000;
@@ -307,7 +371,7 @@ app.post('/api/auth/login', [
         }
 
         const token = jwt.sign(
-            { id: user.id || user._id, email: user.email, name: user.name },
+            { id: user.id || user._id?.toString(), email: user.email, name: user.name },
             JWT_SECRET,
             { expiresIn: JWT_EXPIRY }
         );
@@ -1789,6 +1853,36 @@ app.get('/api/analytics/reports', authenticateToken, async (req, res) => {
 });
 
 // =============================================
+// RANKING RESET ROUTES
+// =============================================
+
+app.post('/api/admin/reset-rankings', authenticateToken, async (req, res) => {
+    try {
+        if (isMongoConnected) {
+            const db = mongoose.connection.db;
+            await db.collection('feedback').deleteMany({});
+            await db.collection('feedbackanswers').deleteMany({});
+            await db.collection('ranking_resets').updateOne(
+                { _id: 'last_reset' },
+                { $set: { date: new Date() } },
+                { upsert: true }
+            );
+        } else {
+            fallbackData.feedback = [];
+            fallbackData.feedbackAnswers = [];
+            saveFallbackDataToFile();
+            setLastRankingReset();
+        }
+        res.json({ success: true, message: 'Rankings reset successfully' });
+    } catch (err) {
+        console.error('Reset rankings error:', err);
+        res.status(500).json({ error: 'Failed to reset rankings' });
+    }
+});
+
+// =============================================
+// PDF REPORTS ROUTES
+// =============================================
 // SETTINGS ROUTES
 // =============================================
 
@@ -2125,7 +2219,7 @@ app.use((err, req, res, next) => {
 // =============================================
 // START SERVER
 // =============================================
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`\n🚀 ServeRate API running on http://localhost:${PORT}`);
     console.log(`📊 Admin Dashboard: http://localhost:${PORT}/`);
     console.log(`🔑 Login: admin@serverate.com / admin123`);
@@ -2134,4 +2228,6 @@ app.listen(PORT, () => {
     console.log(`   1. Install MongoDB from https://www.mongodb.com/try/download/community`);
     console.log(`   2. Start MongoDB service`);
     console.log(`   3. Or use MongoDB Atlas with MONGODB_URI env variable\n`);
+    
+    await checkAndResetRankingsIfNeeded();
 });

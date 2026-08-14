@@ -900,6 +900,7 @@
                 <button data-tab="tabReports">Reports</button>
                 <button id="changePasswordNav" style="margin-top:12px; background:#f8f9fa; border:2px solid #e9ecef; color:#495057; text-align:center;">Change Password</button>
                 <button id="changeEmailNav" style="margin-top:8px; background:#f8f9fa; border:2px solid #e9ecef; color:#495057; text-align:center;">Change Email</button>
+                <button id="resetRankingsNav" style="margin-top:8px; background:#f8f9fa; border:2px solid #e9ecef; color:#495057; text-align:center;">Reset Rankings</button>
             </div>
         </aside>
         <main class="admin-main">
@@ -1244,6 +1245,17 @@
         document.getElementById('changeEmailForm').addEventListener('submit', changeEmail);
         document.getElementById('emailModal').addEventListener('click', (e) => {
             if (e.target === document.getElementById('emailModal')) hideEmailModal();
+        });
+
+        document.getElementById('resetRankingsNav').addEventListener('click', async () => {
+            const confirmed = await showConfirmModal('Are you sure you want to reset all rankings? This will delete all feedback and ratings data.', 'Reset Rankings');
+            if (!confirmed) return;
+            try {
+                await apiFetch('/admin/reset-rankings', { method: 'POST' });
+                showToast('Rankings reset successfully', 'success');
+            } catch (err) {
+                showToast(err.message || 'Failed to reset rankings', 'error');
+            }
         });
 
         checkAuth();
