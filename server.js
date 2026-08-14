@@ -1644,6 +1644,7 @@ app.get('/api/analytics/reports', authenticateToken, async (req, res) => {
                     $group: {
                         _id: '$server_id',
                         count: { $sum: 1 },
+                        totalStars: { $sum: '$server_rating' },
                         avgRating: { $avg: '$server_rating' }
                     }
                 },
@@ -1704,6 +1705,7 @@ app.get('/api/analytics/reports', authenticateToken, async (req, res) => {
                     id: s._id,
                     name: s.server.name,
                     count: s.count,
+                    totalStars: s.totalStars || 0,
                     avgRating: s.avgRating || 0
                 })),
                 categoryRatings: categoryRatings.map(c => ({
@@ -1725,11 +1727,13 @@ app.get('/api/analytics/reports', authenticateToken, async (req, res) => {
                 .filter(s => s.status === 'active')
                 .map(s => {
                     const reviews = fb.filter(f => f.server_id === s.id && f.server_rating !== null);
-                    const avg = reviews.length > 0 ? reviews.reduce((a, b) => a + (b.server_rating || 0), 0) / reviews.length : 0;
+                    const totalStars = reviews.reduce((a, b) => a + (b.server_rating || 0), 0);
+                    const avg = reviews.length > 0 ? totalStars / reviews.length : 0;
                     return { 
                         id: s.id, 
                         name: s.name, 
                         count: reviews.length, 
+                        totalStars: totalStars,
                         avgRating: avg 
                     };
                 })
