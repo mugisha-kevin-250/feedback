@@ -1163,11 +1163,13 @@
                     body: JSON.stringify({ oldPassword: currentPassword, newPassword }),
                     logoutOn401: false,
                 });
+                statusEl.style.display = 'block';
                 statusEl.style.color = '#00b894';
                 statusEl.textContent = 'Password updated successfully!';
                 document.getElementById('changePasswordForm').reset();
                 setTimeout(hidePasswordModal, 1500);
             } catch (err) {
+                statusEl.style.display = 'block';
                 statusEl.style.color = '#e17055';
                 statusEl.textContent = err.message || 'Failed to update password';
             } finally {
@@ -1200,11 +1202,13 @@
                     body: JSON.stringify({ oldPassword: currentPassword, newEmail }),
                     logoutOn401: false,
                 });
+                statusEl.style.display = 'block';
                 statusEl.style.color = '#00b894';
                 statusEl.textContent = 'Email updated successfully!';
                 document.getElementById('changeEmailForm').reset();
                 setTimeout(hideEmailModal, 1500);
             } catch (err) {
+                statusEl.style.display = 'block';
                 statusEl.style.color = '#e17055';
                 statusEl.textContent = err.message || 'Failed to update email';
             } finally {
