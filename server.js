@@ -222,9 +222,9 @@ function initializeFallbackData() {
             { id: 'q3', text: 'How clean was the restaurant?', category: 'Cleanliness', type: 'star', options: [], required: false, active: true, display_order: 3, created_at: new Date(), updated_at: new Date() },
             { id: 'q4', text: 'How was the waiting time?', category: 'Waiting', type: 'star', options: [], required: false, active: true, display_order: 4, created_at: new Date(), updated_at: new Date() },
             { id: 'q5', text: 'How was the atmosphere?', category: 'Atmosphere', type: 'star', options: [], required: false, active: true, display_order: 5, created_at: new Date(), updated_at: new Date() },
-            { id: 'q6', text: 'Would you recommend us?', category: 'Recommendation', type: 'yes_no', options: [], required: true, active: true, display_order: 6, created_at: new Date(), updated_at: new Date() },
             { id: 'q7', text: 'What did you like most?', category: 'Feedback', type: 'multiple_choice', options: ['Food', 'Service', 'Atmosphere', 'Cleanliness', 'Price', 'Other'], required: false, active: true, display_order: 7, created_at: new Date(), updated_at: new Date() },
-            { id: 'q8', text: 'Additional comments', category: 'Feedback', type: 'text', options: [], required: false, active: true, display_order: 8, created_at: new Date(), updated_at: new Date() }
+            { id: 'q8', text: 'Additional comments', category: 'Feedback', type: 'text', options: [], required: false, active: true, display_order: 8, created_at: new Date(), updated_at: new Date() },
+            { id: 'q6', text: 'Would you recommend us?', category: 'Recommendation', type: 'yes_no', options: [], required: true, active: true, display_order: 9, created_at: new Date(), updated_at: new Date() }
         ],
         feedback: [],
         feedbackAnswers: [],
@@ -290,9 +290,9 @@ async function seedDatabase() {
                 { text: 'How clean was the restaurant?', category: 'Cleanliness', type: 'star', options: [], required: false, active: true, display_order: 3 },
                 { text: 'How was the waiting time?', category: 'Waiting', type: 'star', options: [], required: false, active: true, display_order: 4 },
                 { text: 'How was the atmosphere?', category: 'Atmosphere', type: 'star', options: [], required: false, active: true, display_order: 5 },
-                { text: 'Would you recommend us?', category: 'Recommendation', type: 'yes_no', options: [], required: true, active: true, display_order: 6 },
                 { text: 'What did you like most?', category: 'Feedback', type: 'multiple_choice', options: ['Food', 'Service', 'Atmosphere', 'Cleanliness', 'Price', 'Other'], required: false, active: true, display_order: 7 },
-                { text: 'Additional comments', category: 'Feedback', type: 'text', options: [], required: false, active: true, display_order: 8 }
+                { text: 'Additional comments', category: 'Feedback', type: 'text', options: [], required: false, active: true, display_order: 8 },
+                { text: 'Would you recommend us?', category: 'Recommendation', type: 'yes_no', options: [], required: true, active: true, display_order: 9 }
             ];
             for (const q of defaultQuestions) {
                 await db.collection('questions').insertOne({
@@ -302,6 +302,14 @@ async function seedDatabase() {
                 });
             }
             console.log('✅ Default questions created');
+        } else {
+            const q6 = await db.collection('questions').findOne({ id: 'q6' });
+            if (q6 && q6.display_order !== 9) {
+                await db.collection('questions').updateOne({ id: 'q6' }, { $set: { display_order: 9, updated_at: new Date() } });
+                await db.collection('questions').updateOne({ id: 'q7' }, { $set: { display_order: 7, updated_at: new Date() } });
+                await db.collection('questions').updateOne({ id: 'q8' }, { $set: { display_order: 8, updated_at: new Date() } });
+                console.log('✅ Question order updated: q6 moved to last');
+            }
         }
 
         // Check if we have settings
@@ -1112,6 +1120,9 @@ app.get('/api/feedback', authenticateToken, async (req, res) => {
             const questionMap = {};
             questions.forEach(q => { questionMap[q._id.toString()] = q; });
 
+            const q6Question = Object.values(questionMap).find(q => q.id === 'q6');
+            const q6ObjectId = q6Question ? q6Question._id.toString() : null;
+
             const answersByFeedback = {};
             feedbackAnswers.forEach(fa => {
                 const fid = fa.feedback_id.toString();
@@ -1136,6 +1147,7 @@ app.get('/api/feedback', authenticateToken, async (req, res) => {
                 customerName: f.customer_name,
                 customerEmail: f.customer_email,
                 customerPhone: f.customer_phone,
+                recommendation: q6ObjectId ? (feedbackAnswers.find(fa => fa.feedback_id.toString() === f._id.toString() && fa.question_id.toString() === q6ObjectId)?.answer || null) : null,
                 createdAt: f.created_at,
                 textAnswers: answersByFeedback[f._id.toString()] || []
             }));
@@ -1172,6 +1184,7 @@ app.get('/api/feedback', authenticateToken, async (req, res) => {
                         } : null;
                     })
                     .filter(Boolean);
+                const recommendationAnswer = feedbackAnswers.find(fa => fa.question_id === 'q6')?.answer || null;
                 return {
                     id: f.id,
                     serverId: f.server_id,
@@ -1182,6 +1195,7 @@ app.get('/api/feedback', authenticateToken, async (req, res) => {
                     customerName: f.customer_name,
                     customerEmail: f.customer_email,
                     customerPhone: f.customer_phone,
+                    recommendation: recommendationAnswer,
                     createdAt: f.created_at,
                     textAnswers: textAnswers
                 };
@@ -1703,6 +1717,11 @@ app.get('/api/analytics/reports', authenticateToken, async (req, res) => {
                 { $sort: { avgRating: -1 } }
             ]).toArray();
 
+            const q6Question = await db.collection('questions').findOne({ id: 'q6' });
+            const q6Answers = q6Question ? await db.collection('feedbackanswers').find({ question_id: q6Question._id }).toArray() : [];
+            const willReturn = q6Answers.filter(a => a.answer === 'Yes').length;
+            const willNotReturn = q6Answers.filter(a => a.answer === 'No').length;
+
             data = {
                 totalFeedback,
                 avgRestaurantRating: avgRestaurant.length > 0 ? avgRestaurant[0].avg : 0,
@@ -1728,7 +1747,9 @@ app.get('/api/analytics/reports', authenticateToken, async (req, res) => {
                     category: c._id || 'Uncategorized',
                     avgRating: c.avgRating || 0,
                     count: c.count
-                }))
+                })),
+                willReturn,
+                willNotReturn
             };
         } else {
             const fb = fallbackData.feedback;
@@ -1772,6 +1793,10 @@ app.get('/api/analytics/reports', authenticateToken, async (req, res) => {
             }
             categoryRatings.sort((a, b) => b.avgRating - a.avgRating);
 
+            const q6Answers = fallbackData.feedbackAnswers.filter(fa => fa.question_id === 'q6');
+            const willReturn = q6Answers.filter(a => a.answer === 'Yes').length;
+            const willNotReturn = q6Answers.filter(a => a.answer === 'No').length;
+
             data = {
                 totalFeedback: total,
                 avgRestaurantRating: avgRest,
@@ -1787,7 +1812,9 @@ app.get('/api/analytics/reports', authenticateToken, async (req, res) => {
                     count: serverRankings[serverRankings.length - 1].count
                 } : null,
                 serverRankings,
-                categoryRatings
+                categoryRatings,
+                willReturn,
+                willNotReturn
             };
         }
 

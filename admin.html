@@ -941,7 +941,7 @@
          <div id="tabFeedback" class="tab-content">
              <div class="table-wrapper" style="overflow-x: auto;">
                  <table>
-                     <thead><tr><th>Customer</th><th>Server</th><th>Overall</th><th>Server Rating</th><th>Written Feedback</th><th>Date</th></tr></thead>
+                     <thead><tr><th>Customer</th><th>Server</th><th>Overall</th><th>Server Rating</th><th>Written Feedback</th><th>Recommendation</th><th>Date</th></tr></thead>
                      <tbody id="feedbackTableBody"></tbody>
                  </table>
              </div>
@@ -965,6 +965,8 @@
                 <div class="stat-item"><strong>Total Feedback</strong><div class="value" id="reportTotal">0</div></div>
                 <div class="stat-item"><strong>Avg Restaurant</strong><div class="value" id="reportAvgRest">⭐ 0</div></div>
                 <div class="stat-item"><strong>Avg Server</strong><div class="value" id="reportAvgServer">⭐ 0</div></div>
+                <div class="stat-item"><strong>Will Return</strong><div class="value" id="reportWillReturn" style="color:#16a34a;">0</div></div>
+                <div class="stat-item"><strong>Will Not Return</strong><div class="value" id="reportNotReturn" style="color:#dc2626;">0</div></div>
             </div>
 
             <div class="recent-card">
@@ -1431,6 +1433,11 @@
                 const customerInfo = f.customerName 
                     ? `<div style="font-weight:600; color:#0b1a33;">${escapeHtml(f.customerName)}</div><div style="font-size:0.8rem; color:#475569;">${escapeHtml(f.customerEmail || '')}${f.customerEmail && f.customerPhone ? '<br>' : ''}${escapeHtml(f.customerPhone || '')}</div>`
                     : '<span style="color:#94a3b8;">Anonymous</span>';
+                const recommendation = f.recommendation === 'Yes' 
+                    ? '<span style="color:#16a34a; font-weight:600;">Will Return</span>' 
+                    : f.recommendation === 'No' 
+                        ? '<span style="color:#dc2626; font-weight:600;">Will Not Return</span>' 
+                        : '<span style="color:#94a3b8;">-</span>';
                 return `
                     <tr>
                         <td>${customerInfo}</td>
@@ -1438,12 +1445,13 @@
                         <td>⭐ ${f.overallRating || 0}</td>
                         <td>⭐ ${f.serverRating || 0}</td>
                         <td style="max-width: 300px; white-space: normal;">${feedbackText}</td>
+                        <td>${recommendation}</td>
                         <td>${new Date(f.createdAt).toLocaleDateString()}</td>
                     </tr>
                 `;
             }).join('');
             if (items.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;">No feedback found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;">No feedback found</td></tr>';
             }
         }
 
@@ -1453,6 +1461,8 @@
             document.getElementById('reportTotal').textContent = data.totalFeedback || 0;
             document.getElementById('reportAvgRest').textContent = '⭐ ' + (data.avgRestaurantRating || 0).toFixed(1);
             document.getElementById('reportAvgServer').textContent = '⭐ ' + (data.avgServerRating || 0).toFixed(1);
+            document.getElementById('reportWillReturn').textContent = data.willReturn || 0;
+            document.getElementById('reportNotReturn').textContent = data.willNotReturn || 0;
 
             const sr = document.getElementById('serverRankings');
             sr.innerHTML = (data.serverRankings || []).map((s, i) => {
@@ -1702,6 +1712,10 @@
                         <div class="chatbot-stat-grid" style="margin-top:8px;">
                             <div class="chatbot-stat-item"><strong>Positive</strong><span style="color:#22c55e">${data.positivePercentage || 0}%</span></div>
                             <div class="chatbot-stat-item"><strong>Negative</strong><span style="color:#ef4444">${data.negativePercentage || 0}%</span></div>
+                        </div>
+                        <div class="chatbot-stat-grid" style="margin-top:8px;">
+                            <div class="chatbot-stat-item"><strong>Will Return</strong><span style="color:#16a34a">${reports.willReturn || 0}</span></div>
+                            <div class="chatbot-stat-item"><strong>Will Not Return</strong><span style="color:#dc2626">${reports.willNotReturn || 0}</span></div>
                         </div>
                     `;
                     addChatbotMessage(html, 'bot');
