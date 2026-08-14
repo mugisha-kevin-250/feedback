@@ -925,6 +925,7 @@
         let selectedServer = null;
         let questions = [];
         let isSubmitting = false;
+        let returnTimeout = null;
 
         const dom = {
             serverSelect: document.getElementById('serverSelectScreen'),
@@ -1074,6 +1075,9 @@
                 dom.stepIndicator.textContent = 'Contact Info';
                 dom.navRow.classList.add('hidden');
                 dom.submitRow.classList.add('hidden');
+                document.getElementById('customerName').value = '';
+                document.getElementById('customerEmail').value = '';
+                document.getElementById('customerPhone').value = '';
             } else if (step >= 3 && step <= totalQuestions + 3) {
                 dom.contactStep.classList.add('hidden');
                 dom.questions.classList.remove('hidden');
@@ -1363,7 +1367,11 @@
             document.getElementById('customerName').value = '';
             document.getElementById('customerEmail').value = '';
             document.getElementById('customerPhone').value = '';
-            setTimeout(() => goToStep(0), 1000);
+            if (returnTimeout) clearTimeout(returnTimeout);
+            returnTimeout = setTimeout(() => {
+                returnTimeout = null;
+                goToStep(0);
+            }, 1000);
         }
 
         // Click on server badge to go back to server selection
@@ -1371,11 +1379,14 @@
             if (currentStep >= 3) {
                 const confirmed = await showConfirmModal('Going back will reset your progress. Continue?', 'Continue');
                 if (confirmed) {
+                    if (returnTimeout) { clearTimeout(returnTimeout); returnTimeout = null; }
                     goToStep(0);
                 }
             } else if (currentStep === 2) {
+                if (returnTimeout) { clearTimeout(returnTimeout); returnTimeout = null; }
                 goToStep(0);
             } else {
+                if (returnTimeout) { clearTimeout(returnTimeout); returnTimeout = null; }
                 goToStep(0);
             }
             document.getElementById('customerName').value = '';
