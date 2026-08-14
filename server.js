@@ -1043,7 +1043,7 @@ app.post('/api/feedback', [
         if (isMongoConnected) {
             const db = mongoose.connection.db;
             const result = await db.collection('feedback').insertOne({
-                server_id: serverId,
+                server_id: new mongoose.Types.ObjectId(serverId),
                 overall_rating: overallRating,
                 server_rating: serverRating || null,
                 comment: comment || null,
@@ -1057,7 +1057,7 @@ app.post('/api/feedback', [
                 if (answer.answer !== null && answer.answer !== undefined && answer.answer !== '') {
                     await db.collection('feedbackanswers').insertOne({
                         feedback_id: feedbackId,
-                        question_id: answer.questionId,
+                        question_id: new mongoose.Types.ObjectId(answer.questionId),
                         answer: String(answer.answer),
                         created_at: new Date()
                     });
@@ -1117,7 +1117,7 @@ app.get('/api/feedback', authenticateToken, async (req, res) => {
         if (isMongoConnected) {
             const db = mongoose.connection.db;
             let filter = {};
-            if (serverId) filter.server_id = serverId;
+            if (serverId) filter.server_id = new mongoose.Types.ObjectId(serverId);
             if (rating) filter.overall_rating = rating;
 
             if (search) {
@@ -1135,7 +1135,7 @@ app.get('/api/feedback', authenticateToken, async (req, res) => {
 
             const serverIds = feedbacks.map(f => f.server_id);
             const servers = await db.collection('servers')
-                .find({ _id: { $in: serverIds.map(id => new mongoose.Types.ObjectId(id)) } })
+                .find({ _id: { $in: serverIds } })
                 .toArray();
             const serverMap = {};
             servers.forEach(s => { serverMap[s._id.toString()] = s.name; });
@@ -1207,14 +1207,14 @@ app.get('/api/feedback/:id', authenticateToken, async (req, res) => {
                 return res.status(404).json({ error: 'Feedback not found' });
             }
 
-            const server = await db.collection('servers').findOne({ _id: new mongoose.Types.ObjectId(feedback.server_id) });
+            const server = await db.collection('servers').findOne({ _id: feedback.server_id });
             const feedbackAnswers = await db.collection('feedbackanswers')
-                .find({ feedback_id: id })
+                .find({ feedback_id: new mongoose.Types.ObjectId(id) })
                 .toArray();
             
             const questionIds = feedbackAnswers.map(fa => fa.question_id);
             const questions = await db.collection('questions')
-                .find({ _id: { $in: questionIds.map(qid => new mongoose.Types.ObjectId(qid)) } })
+                .find({ _id: { $in: questionIds } })
                 .toArray();
             const questionMap = {};
             questions.forEach(q => { questionMap[q._id.toString()] = q; });
@@ -1519,7 +1519,7 @@ app.get('/api/analytics/dashboard', authenticateToken, async (req, res) => {
 
             const serverIds = recentFeedback.map(f => f.server_id);
             const servers = await db.collection('servers')
-                .find({ _id: { $in: serverIds.map(id => new mongoose.Types.ObjectId(id)) } })
+                .find({ _id: { $in: serverIds } })
                 .toArray();
             const serverMap = {};
             servers.forEach(s => { serverMap[s._id.toString()] = s.name; });
