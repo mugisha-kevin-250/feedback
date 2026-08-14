@@ -1395,8 +1395,9 @@
         async function renderServers() {
             const servers = await apiFetch('/servers');
             serversData = servers;
+            const sorted = [...servers].sort((a, b) => (b.avgRating || 0) - (a.avgRating || 0));
             const tbody = document.getElementById('serversTableBody');
-            tbody.innerHTML = servers.map((s, idx) => {
+            tbody.innerHTML = sorted.map((s, idx) => {
                 const avg = s.avgRating || 0;
                 const fullStars = Math.floor(avg);
                 const halfStar = avg - fullStars >= 0.5;
