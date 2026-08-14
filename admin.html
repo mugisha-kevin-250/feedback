@@ -971,7 +971,7 @@
             <div class="recent-card">
                 <h3>Server Performance</h3>
                 <table>
-                    <thead><tr><th>Rank</th><th></th><th>Worker</th><th>Reviews</th><th>Total Stars</th><th>Avg Rating</th></tr></thead>
+                    <thead><tr><th>Rank</th><th></th><th>Worker</th><th>Total Stars</th></tr></thead>
                     <tbody id="serverRankings"></tbody>
                 </table>
             </div>
@@ -1566,10 +1566,10 @@
                 else if (rank === 2) icon = '⭐';
                 else if (rank === 3) icon = '🥉';
                 const totalStars = s.totalStars || 0;
-                return `<tr><td>${rank}</td><td>${icon}</td><td>${escapeHtml(s.name)}</td><td>${s.count}</td><td>${totalStars} stars</td><td>⭐ ${(s.avgRating || 0).toFixed(1)}</td></tr>`;
+                return `<tr><td>${rank}</td><td>${icon}</td><td>${escapeHtml(s.name)}</td><td>${totalStars} stars</td></tr>`;
             }).join('');
             if ((data.serverRankings || []).length === 0) {
-                sr.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;">No server data</td></tr>';
+                sr.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999;">No server data</td></tr>';
             }
 
             const cr = document.getElementById('categoryRatings');
@@ -1795,7 +1795,7 @@
                             else if (rank === 2) icon = '⭐';
                             else if (rank === 3) icon = '🥉';
                             const totalStars = s.totalStars || 0;
-                            html += `<li><span>${icon} ${rank}. ${escapeHtml(s.name)}</span><span>⭐ ${(s.avgRating || 0).toFixed(1)} (${totalStars} stars)</span></li>`;
+                            html += `<li><span>${icon} ${rank}. ${escapeHtml(s.name)}</span><span>${totalStars} stars</span></li>`;
                         });
                         html += '</ul>';
                     } else {

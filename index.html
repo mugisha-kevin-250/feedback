@@ -190,6 +190,11 @@
             align-items: center;
             gap: 4px;
         }
+        .server-rank {
+            font-size: 0.85rem;
+            font-weight: 700;
+            opacity: 0.9;
+        }
         .server-rating .stars {
             color: #fbbf24;
             font-size: 0.9rem;
@@ -984,7 +989,7 @@
                     return;
                 }
                 dom.noServersMsg.classList.add('hidden');
-                servers.forEach(s => {
+                servers.forEach((s, idx) => {
                     const btn = document.createElement('button');
                     btn.className = 'server-btn';
                     if (selectedServer && selectedServer.id === s.id) btn.classList.add('selected');
@@ -992,21 +997,19 @@
                     const nameSpan = document.createElement('span');
                     nameSpan.textContent = s.name || s.id;
                     
-                    const ratingDiv = document.createElement('span');
-                    ratingDiv.className = 'server-rating';
-                    const avg = s.avgRating || 0;
-                    const fullStars = Math.floor(avg);
-                    const halfStar = avg - fullStars >= 0.5;
-                    let starsHtml = '';
-                    for (let i = 1; i <= 5; i++) {
-                        if (i <= fullStars) starsHtml += '★';
-                        else if (i === fullStars + 1 && halfStar) starsHtml += '★';
-                        else starsHtml += '☆';
-                    }
-                    ratingDiv.innerHTML = `<span class="stars">${starsHtml}</span> <span class="rating-num">${avg > 0 ? avg.toFixed(1) : '0'}</span>`;
+                    const rank = idx + 1;
+                    let icon = '👤';
+                    if (rank === 1) icon = '👑';
+                    else if (rank === 2) icon = '⭐';
+                    else if (rank === 3) icon = '🥉';
+                    const totalStars = s.totalStars || 0;
+                    
+                    const rankSpan = document.createElement('span');
+                    rankSpan.className = 'server-rank';
+                    rankSpan.textContent = `${icon} ${totalStars} stars`;
                     
                     btn.appendChild(nameSpan);
-                    btn.appendChild(ratingDiv);
+                    btn.appendChild(rankSpan);
                     btn.dataset.id = s.id;
                     btn.addEventListener('click', () => {
                         document.querySelectorAll('.server-btn').forEach(b => b.classList.remove('selected'));

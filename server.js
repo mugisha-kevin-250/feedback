@@ -599,7 +599,8 @@ app.get('/api/servers/ranked', async (req, res) => {
                 { $group: { 
                     _id: '$server_id', 
                     avgRating: { $avg: '$server_rating' }, 
-                    reviewCount: { $sum: 1 } 
+                    reviewCount: { $sum: 1 },
+                    totalStars: { $sum: '$server_rating' }
                 }}
             ]).toArray();
             
@@ -607,7 +608,8 @@ app.get('/api/servers/ranked', async (req, res) => {
             feedbackStats.forEach(f => {
                 statsMap[f._id.toString()] = {
                     avgRating: f.avgRating ? Math.round(f.avgRating * 10) / 10 : 0,
-                    reviewCount: f.reviewCount || 0
+                    reviewCount: f.reviewCount || 0,
+                    totalStars: f.totalStars || 0
                 };
             });
             
@@ -616,20 +618,23 @@ app.get('/api/servers/ranked', async (req, res) => {
                 name: s.name,
                 status: s.status,
                 avgRating: statsMap[s._id.toString()]?.avgRating || 0,
-                reviewCount: statsMap[s._id.toString()]?.reviewCount || 0
+                reviewCount: statsMap[s._id.toString()]?.reviewCount || 0,
+                totalStars: statsMap[s._id.toString()]?.totalStars || 0
             }));
         } else {
             servers = fallbackData.servers.filter(s => s.status === 'active').map(s => {
                 const serverFeedback = fallbackData.feedback.filter(f => f.server_id === s.id && f.server_rating !== null);
+                const totalStars = serverFeedback.reduce((a, b) => a + (b.server_rating || 0), 0);
                 const avgRating = serverFeedback.length > 0 
-                    ? Math.round((serverFeedback.reduce((a, b) => a + (b.server_rating || 0), 0) / serverFeedback.length) * 10) / 10 
+                    ? Math.round((totalStars / serverFeedback.length) * 10) / 10 
                     : 0;
                 return {
                     id: s.id,
                     name: s.name,
                     status: s.status,
                     avgRating: avgRating,
-                    reviewCount: serverFeedback.length
+                    reviewCount: serverFeedback.length,
+                    totalStars: totalStars
                 };
             });
         }
