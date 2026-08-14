@@ -1084,6 +1084,7 @@
         async function apiFetch(endpoint, options) {
             const config = {
                 headers: getAuthHeaders(),
+                credentials: 'include',
                 ...options,
             };
             const res = await fetch(`${API_BASE}${endpoint}`, config);
@@ -1618,8 +1619,17 @@
 
         document.getElementById('downloadCsvBtn').addEventListener('click', async () => {
             try {
-                const res = await fetch('/api/customers/download-pdf?page=1');
-                if (!res.ok) throw new Error('Download failed');
+                const token = localStorage.getItem('serveRateToken');
+                const res = await fetch('/api/customers/download-pdf?page=1', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    credentials: 'include',
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({ error: 'Download failed' }));
+                    throw new Error(data.error || 'Download failed');
+                }
                 const blob = await res.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -1773,13 +1783,29 @@
                 const typeMap = { 'pdf-full': '/reports/download', 'pdf-servers': '/reports/servers/pdf', 'pdf-categories': '/reports/categories/pdf' };
                 const nameMap = { 'pdf-full': 'Full Report', 'pdf-servers': 'Server Report', 'pdf-categories': 'Category Report' };
                 addChatbotMessage(`Generating <strong>${nameMap[action]}</strong>... Your download should begin shortly.`, 'bot');
-                const a = document.createElement('a');
-                a.href = `${API_BASE}${typeMap[action]}`;
-                a.download = nameMap[action].replace(/\s+/g, '-').toLowerCase() + '.pdf';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                setTimeout(() => addChatbotMessage('Download started! Check your downloads folder.', 'bot'), 800);
+                try {
+                    const token = localStorage.getItem('serveRateToken');
+                    const res = await fetch(`${API_BASE}${typeMap[action]}`, {
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        credentials: 'include',
+                    });
+                    if (!res.ok) {
+                        const data = await res.json().catch(() => ({ error: 'Download failed' }));
+                        throw new Error(data.error || 'Download failed');
+                    }
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = nameMap[action].replace(/\s+/g, '-').toLowerCase() + '.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                    setTimeout(() => addChatbotMessage('Download started! Check your downloads folder.', 'bot'), 800);
+                } catch (err) {
+                    addChatbotMessage(`<span style="color:#e17055">${err.message || 'Failed to download PDF'}</span>`, 'bot');
+                }
                 return;
             }
 

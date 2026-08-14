@@ -411,7 +411,12 @@ app.post('/api/auth/change-password', authenticateToken, [
 
         if (isMongoConnected) {
             const db = mongoose.connection.db;
-            user = await db.collection('managers').findOne({ _id: new mongoose.Types.ObjectId(userId) });
+            if (mongoose.Types.ObjectId.isValid(userId)) {
+                user = await db.collection('managers').findOne({ _id: new mongoose.Types.ObjectId(userId) });
+            }
+            if (!user) {
+                user = await db.collection('managers').findOne({ email: req.user.email });
+            }
             if (user) password_hash = user.password_hash;
         } else {
             user = fallbackData.managers.find(m => m.id === userId);
@@ -431,7 +436,7 @@ app.post('/api/auth/change-password', authenticateToken, [
 
         if (isMongoConnected) {
             await db.collection('managers').updateOne(
-                { _id: new mongoose.Types.ObjectId(userId) },
+                { _id: user._id },
                 { $set: { password_hash: hashedPassword, updated_at: new Date() } }
             );
         } else {
@@ -466,10 +471,15 @@ app.post('/api/auth/change-email', authenticateToken, [
 
         if (isMongoConnected) {
             const db = mongoose.connection.db;
-            user = await db.collection('managers').findOne({ _id: new mongoose.Types.ObjectId(userId) });
+            if (mongoose.Types.ObjectId.isValid(userId)) {
+                user = await db.collection('managers').findOne({ _id: new mongoose.Types.ObjectId(userId) });
+            }
+            if (!user) {
+                user = await db.collection('managers').findOne({ email: req.user.email });
+            }
             if (user) password_hash = user.password_hash;
 
-            const existing = await db.collection('managers').findOne({ email: trimmedEmail, _id: { $ne: new mongoose.Types.ObjectId(userId) } });
+            const existing = await db.collection('managers').findOne({ email: trimmedEmail, _id: { $ne: user._id } });
             if (existing) {
                 return res.status(409).json({ error: 'Email is already in use' });
             }
@@ -494,7 +504,7 @@ app.post('/api/auth/change-email', authenticateToken, [
 
         if (isMongoConnected) {
             await db.collection('managers').updateOne(
-                { _id: new mongoose.Types.ObjectId(userId) },
+                { _id: user._id },
                 { $set: { email: trimmedEmail, updated_at: new Date() } }
             );
         } else {
@@ -2000,6 +2010,11 @@ async function getReportData() {
         const recentFeedback = await db.collection('feedback')
             .find().sort({ created_at: -1 }).limit(20).toArray();
 
+        const serverIds = [...new Set(recentFeedback.map(f => f.server_id))];
+        const servers = await db.collection('servers').find({ _id: { $in: serverIds } }).toArray();
+        const serverMap = {};
+        servers.forEach(s => { serverMap[s._id.toString()] = s.name; });
+
         data = {
             totalFeedback,
             avgRestaurant: avgRestaurant.length > 0 ? avgRestaurant[0].avg : 0,
@@ -2018,7 +2033,7 @@ async function getReportData() {
                 count: c.count
             })),
             recentFeedback: recentFeedback.map(f => ({
-                serverName: f.server_id,
+                serverName: serverMap[f.server_id.toString()] || 'Unknown',
                 overallRating: f.overall_rating,
                 serverRating: f.server_rating,
                 comment: f.comment,
