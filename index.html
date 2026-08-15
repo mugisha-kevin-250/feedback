@@ -45,9 +45,11 @@
             gap: 8px;
         }
         .brand-logo {
-            height: 36px;
-            width: auto;
-            object-fit: contain;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-left: auto;
         }
         .server-badge {
             background: #eef2ff;
@@ -853,11 +855,11 @@
 <!-- CUSTOMER TABLET -->
 <div class="tablet-container" id="app">
     <div class="session-bar">
-        <img src="/avera.png" alt="Avera" class="brand-logo" style="height: 36px; width: auto;" onerror="this.style.display='none'">
         <div class="server-badge" id="serverBadge" title="Click to change server">
             <i class="fas fa-user-circle"></i> <span id="selectedServerName">Select server</span>
         </div>
         <div class="step-indicator" id="stepIndicator">Welcome</div>
+        <img src="/avera.png" alt="Avera" class="brand-logo" onerror="this.style.display='none'">
     </div>
     <div class="feedback-card" id="feedbackCard">
         <!-- Server selection (step 0) -->
