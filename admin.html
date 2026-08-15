@@ -902,7 +902,6 @@
                 <button data-tab="tabFeedback">Feedback</button>
                 <button data-tab="tabCustomers">Customers</button>
                 <button data-tab="tabReports">Reports</button>
-                <button id="resetRankingsNav" style="margin-top:8px; background:#f8f9fa; border:2px solid #e9ecef; color:#495057; text-align:center;">Reset Rankings</button>
             </div>
             
             <div id="storageIndicator" style="margin-top: 16px; padding: 12px; background: white; border-radius: 12px; border: 1px solid var(--gray-200);">
@@ -1134,16 +1133,6 @@
         });
         document.getElementById('logoutBtn').addEventListener('click', () => {
             logout();
-        });
-        document.getElementById('resetRankingsNav').addEventListener('click', async () => {
-            const confirmed = await showConfirmModal('Are you sure you want to reset all rankings? This will delete all feedback and ratings data.', 'Reset Rankings');
-            if (!confirmed) return;
-            try {
-                await apiFetch('/admin/reset-rankings', { method: 'POST' });
-                showToast('Rankings reset successfully', 'success');
-            } catch (err) {
-                showToast(err.message || 'Failed to reset rankings', 'error');
-            }
         });
 
         document.getElementById('restartSystemBtn').addEventListener('click', async () => {
