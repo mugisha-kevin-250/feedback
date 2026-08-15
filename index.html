@@ -1297,14 +1297,14 @@
             }
 
             const customerName = document.getElementById('customerName').value.trim();
-            const customerEmail = document.getElementById('customerEmail').value.trim();
-            const customerPhone = document.getElementById('customerPhone').value.trim();
+            const textQuestion = questions.find(q => q.type === 'text');
+            const comment = textQuestion ? (answers[textQuestion.id] || '') : '';
 
             const payload = {
                 serverId: selectedServer.id,
                 answers: answerArray,
                 serverRating: answers['server_rating'] || null,
-                comment: answers['q8'] || '',
+                comment: comment,
                 customerName: customerName || null,
                 customerEmail: customerEmail || null,
                 customerPhone: customerPhone || null,

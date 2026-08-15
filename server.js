@@ -374,7 +374,26 @@ app.post('/api/auth/login', [
         if (isMongoConnected) {
             const db = mongoose.connection.db;
             user = await db.collection('managers').findOne({ email });
-            if (user) password_hash = user.password_hash;
+            if (user) {
+                password_hash = user.password_hash;
+            } else {
+                const managerCount = await db.collection('managers').countDocuments();
+                if (managerCount === 0) {
+                    const hashedPassword = await bcrypt.hash('admin123', 10);
+                    await db.collection('managers').insertOne({
+                        name: 'Admin',
+                        email: 'admin@serverate.com',
+                        password_hash: hashedPassword,
+                        created_at: new Date(),
+                        updated_at: new Date()
+                    });
+                    console.log('✅ Default manager auto-created: admin@serverate.com / admin123');
+                    if (email === 'admin@serverate.com') {
+                        user = await db.collection('managers').findOne({ email });
+                        password_hash = user.password_hash;
+                    }
+                }
+            }
         } else {
             user = fallbackData.managers.find(m => m.email === email);
             if (user) password_hash = user.password_hash;
@@ -1922,6 +1941,7 @@ app.post('/api/admin/full-reset', authenticateToken, async (req, res) => {
             for (const collection of collections) {
                 await db.collection(collection.name).deleteMany({});
             }
+            await seedDatabase();
         } else {
             if (fs.existsSync(FALLBACK_DATA_FILE)) {
                 fs.unlinkSync(FALLBACK_DATA_FILE);
@@ -1932,10 +1952,7 @@ app.post('/api/admin/full-reset', authenticateToken, async (req, res) => {
             initializeFallbackData();
         }
         
-        res.json({ success: true, message: 'System reset complete. Server is restarting...' });
-        setTimeout(() => {
-            process.exit(0);
-        }, 1500);
+        res.json({ success: true, message: 'System reset complete. All data has been cleared and default data restored.' });
     } catch (err) {
         console.error('Full reset error:', err);
         res.status(500).json({ error: 'Failed to reset system' });
