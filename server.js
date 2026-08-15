@@ -605,7 +605,13 @@ app.get('/api/servers/ranked', async (req, res) => {
             });
         }
         
-        servers.sort((a, b) => (b.avgRating || 0) - (a.avgRating || 0));
+        servers.sort((a, b) => {
+            const starsDiff = (b.totalStars || 0) - (a.totalStars || 0);
+            if (starsDiff !== 0) return starsDiff;
+            const avgDiff = (b.avgRating || 0) - (a.avgRating || 0);
+            if (avgDiff !== 0) return avgDiff;
+            return (b.reviewCount || 0) - (a.reviewCount || 0);
+        });
         res.json(servers);
     } catch (err) {
         console.error(err);
