@@ -224,7 +224,7 @@ function initializeFallbackData() {
             { id: 'q5', text: 'How was the atmosphere?', category: 'Atmosphere', type: 'star', options: [], required: false, active: true, display_order: 5, created_at: new Date(), updated_at: new Date() },
             { id: 'q7', text: 'What did you like most?', category: 'Feedback', type: 'multiple_choice', options: ['Food', 'Service', 'Atmosphere', 'Cleanliness', 'Price', 'Other'], required: false, active: true, display_order: 7, created_at: new Date(), updated_at: new Date() },
             { id: 'q8', text: 'Additional comments', category: 'Feedback', type: 'text', options: [], required: false, active: true, display_order: 8, created_at: new Date(), updated_at: new Date() },
-            { id: 'q6', text: 'Would you recommend us?', category: 'Recommendation', type: 'yes_no', options: [], required: true, active: true, display_order: 9, created_at: new Date(), updated_at: new Date() }
+            { id: 'q6', text: 'Will you return?', category: 'Recommendation', type: 'yes_no', options: [], required: true, active: true, display_order: 10, created_at: new Date(), updated_at: new Date() }
         ],
         feedback: [],
         feedbackAnswers: [],
@@ -292,7 +292,7 @@ async function seedDatabase() {
                 { text: 'How was the atmosphere?', category: 'Atmosphere', type: 'star', options: [], required: false, active: true, display_order: 5 },
                 { text: 'What did you like most?', category: 'Feedback', type: 'multiple_choice', options: ['Food', 'Service', 'Atmosphere', 'Cleanliness', 'Price', 'Other'], required: false, active: true, display_order: 7 },
                 { text: 'Additional comments', category: 'Feedback', type: 'text', options: [], required: false, active: true, display_order: 8 },
-                { text: 'Would you recommend us?', category: 'Recommendation', type: 'yes_no', options: [], required: true, active: true, display_order: 9 }
+                { text: 'Will you return?', category: 'Recommendation', type: 'yes_no', options: [], required: true, active: true, display_order: 10 }
             ];
             for (const q of defaultQuestions) {
                 await db.collection('questions').insertOne({
@@ -304,12 +304,17 @@ async function seedDatabase() {
             console.log('✅ Default questions created');
         } else {
             const q6 = await db.collection('questions').findOne({ id: 'q6' });
-            if (q6 && q6.display_order !== 9) {
-                const updateFields = { display_order: 9, updated_at: new Date() };
+            if (q6) {
+                const updateFields = { updated_at: new Date() };
                 if (q6.text === 'Would you recommend us?') {
                     updateFields.text = 'Will you return?';
                 }
-                await db.collection('questions').updateOne({ id: 'q6' }, { $set: updateFields });
+                if (q6.display_order !== 10) {
+                    updateFields.display_order = 10;
+                }
+                if (Object.keys(updateFields).length > 1) {
+                    await db.collection('questions').updateOne({ id: 'q6' }, { $set: updateFields });
+                }
                 await db.collection('questions').updateOne({ id: 'q7' }, { $set: { display_order: 7, updated_at: new Date() } });
                 await db.collection('questions').updateOne({ id: 'q8' }, { $set: { display_order: 8, updated_at: new Date() } });
                 console.log('✅ Question order updated: q6 moved to last');
