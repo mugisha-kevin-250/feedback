@@ -463,26 +463,6 @@
             display: block;
         }
 
-        /* Admin dot */
-        .admin-dot {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 18px;
-            height: 18px;
-            background: #1e293b;
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            transition: 0.2s;
-            z-index: 999;
-            border: 2px solid white;
-        }
-        .admin-dot:hover {
-            transform: scale(1.2);
-            background: #4f46e5;
-        }
-
         :root {
             --primary: #6c5ce7;
             --primary-dark: #5a4bd1;
@@ -830,10 +810,7 @@
 </head>
 <body>
 
-<!-- ADMIN DOT (footer) -->
-<a href="/admin.html" class="admin-dot" id="adminDot" title="Open Admin Dashboard"></a>
-
-<div id="confirmModal" class="confirm-modal-overlay">
+    <div id="confirmModal" class="confirm-modal-overlay">
     <div class="confirm-modal">
         <p id="confirmModalMessage">Are you sure?</p>
         <div class="confirm-modal-actions">
