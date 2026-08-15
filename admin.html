@@ -1404,11 +1404,14 @@
             if (!type) return;
             const category = await showInputModal('Category', 'General');
             if (!category) return;
+            const orderStr = await showInputModal('Question order (1 = first, use a high number like 100 for last)', '1');
+            if (orderStr === null) return;
+            const displayOrder = parseInt(orderStr, 10);
             const required = await showConfirmModal('Is this question required?', 'Yes');
             await apiFetch('/questions', {
                 method: 'POST',
                 body: JSON.stringify({
-                    text, type, category, required, active: true,
+                    text, type, category, required, active: true, displayOrder: isNaN(displayOrder) ? 1 : displayOrder,
                     options: type === 'multiple_choice' ? ['Option 1', 'Option 2', 'Option 3'] : []
                 })
             });
