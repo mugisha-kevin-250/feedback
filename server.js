@@ -1706,7 +1706,7 @@ app.get('/api/analytics/reports', authenticateToken, async (req, res) => {
                 },
                 { $unwind: '$server' },
                 { $match: { 'server.status': 'active' } },
-                { $sort: { avgRating: -1 } }
+                { $sort: { totalStars: -1, avgRating: -1, count: -1 } }
             ]).toArray();
 
             // Category ratings
@@ -1794,7 +1794,13 @@ app.get('/api/analytics/reports', authenticateToken, async (req, res) => {
                     };
                 })
                 .filter(s => s.count > 0)
-                .sort((a, b) => b.avgRating - a.avgRating);
+                .sort((a, b) => {
+                    const starsDiff = (b.totalStars || 0) - (a.totalStars || 0);
+                    if (starsDiff !== 0) return starsDiff;
+                    const avgDiff = (b.avgRating || 0) - (a.avgRating || 0);
+                    if (avgDiff !== 0) return avgDiff;
+                    return (b.count || 0) - (a.count || 0);
+                });
 
             // Category ratings
             const categoryRatings = [];
@@ -1975,11 +1981,11 @@ async function getReportData() {
         ]);
 
         const serverRankings = await db.collection('feedback').aggregate([
-            { $group: { _id: '$server_id', count: { $sum: 1 }, avgRating: { $avg: '$server_rating' } } },
+            { $group: { _id: '$server_id', count: { $sum: 1 }, totalStars: { $sum: '$server_rating' }, avgRating: { $avg: '$server_rating' } } },
             { $lookup: { from: 'servers', localField: '_id', foreignField: '_id', as: 'server' } },
             { $unwind: '$server' },
             { $match: { 'server.status': 'active' } },
-            { $sort: { avgRating: -1 } }
+            { $sort: { totalStars: -1, avgRating: -1, count: -1 } }
         ]).toArray();
 
         const categoryRatings = await db.collection('feedbackanswers').aggregate([
@@ -2008,6 +2014,7 @@ async function getReportData() {
             serverRankings: serverRankings.map(s => ({
                 name: s.server.name,
                 count: s.count,
+                totalStars: s.totalStars || 0,
                 avgRating: s.avgRating || 0
             })),
             categoryRatings: categoryRatings.map(c => ({
@@ -2037,11 +2044,18 @@ async function getReportData() {
             .filter(s => s.status === 'active')
             .map(s => {
                 const reviews = fb.filter(f => f.server_id === s.id && f.server_rating !== null);
-                const avg = reviews.length > 0 ? reviews.reduce((a, b) => a + (b.server_rating || 0), 0) / reviews.length : 0;
-                return { name: s.name, count: reviews.length, avgRating: avg };
+                const totalStars = reviews.reduce((a, b) => a + (b.server_rating || 0), 0);
+                const avg = reviews.length > 0 ? totalStars / reviews.length : 0;
+                return { name: s.name, count: reviews.length, totalStars: totalStars, avgRating: avg };
             })
             .filter(s => s.count > 0)
-            .sort((a, b) => b.avgRating - a.avgRating);
+            .sort((a, b) => {
+                const starsDiff = (b.totalStars || 0) - (a.totalStars || 0);
+                if (starsDiff !== 0) return starsDiff;
+                const avgDiff = (b.avgRating || 0) - (a.avgRating || 0);
+                if (avgDiff !== 0) return avgDiff;
+                return (b.count || 0) - (a.count || 0);
+            });
 
         const categoryRatings = [];
         const categories = {};
