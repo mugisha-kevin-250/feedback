@@ -1882,6 +1882,67 @@ app.post('/api/admin/reset-rankings', authenticateToken, async (req, res) => {
 });
 
 // =============================================
+// ADMIN STORAGE & FULL RESET ROUTES
+// =============================================
+
+app.get('/api/admin/storage', authenticateToken, async (req, res) => {
+    try {
+        if (!isMongoConnected) {
+            return res.json({ 
+                connected: false,
+                message: 'Not connected to MongoDB',
+                fallback: true
+            });
+        }
+        const db = mongoose.connection.db;
+        const stats = await db.stats();
+        const dataSizeMB = (stats.dataSize / (1024 * 1024)).toFixed(2);
+        const indexSizeMB = (stats.indexSize / (1024 * 1024)).toFixed(2);
+        const storageSizeMB = (stats.storageSize / (1024 * 1024)).toFixed(2);
+        
+        res.json({
+            connected: true,
+            dataSize: dataSizeMB,
+            indexSize: indexSizeMB,
+            storageSize: storageSizeMB,
+            collections: stats.collections,
+            objects: stats.objects
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to get storage info' });
+    }
+});
+
+app.post('/api/admin/full-reset', authenticateToken, async (req, res) => {
+    try {
+        if (isMongoConnected) {
+            const db = mongoose.connection.db;
+            const collections = await db.listCollections().toArray();
+            for (const collection of collections) {
+                await db.collection(collection.name).deleteMany({});
+            }
+        } else {
+            if (fs.existsSync(FALLBACK_DATA_FILE)) {
+                fs.unlinkSync(FALLBACK_DATA_FILE);
+            }
+            if (fs.existsSync(RANKING_RESET_FILE)) {
+                fs.unlinkSync(RANKING_RESET_FILE);
+            }
+            initializeFallbackData();
+        }
+        
+        res.json({ success: true, message: 'System reset complete. Server is restarting...' });
+        setTimeout(() => {
+            process.exit(0);
+        }, 1500);
+    } catch (err) {
+        console.error('Full reset error:', err);
+        res.status(500).json({ error: 'Failed to reset system' });
+    }
+});
+
+// =============================================
 // PDF REPORTS ROUTES
 // =============================================
 // SETTINGS ROUTES

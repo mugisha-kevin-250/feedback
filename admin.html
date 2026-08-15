@@ -313,6 +313,10 @@
             transform: translateY(-1px);
         }
 
+        #restartSystemBtn:hover {
+            background: #dc2626;
+        }
+
         /* Recent feedback card */
         .recent-card {
             background: white;
@@ -900,6 +904,18 @@
                 <button data-tab="tabReports">Reports</button>
                 <button id="resetRankingsNav" style="margin-top:8px; background:#f8f9fa; border:2px solid #e9ecef; color:#495057; text-align:center;">Reset Rankings</button>
             </div>
+            
+            <div id="storageIndicator" style="margin-top: 16px; padding: 12px; background: white; border-radius: 12px; border: 1px solid var(--gray-200);">
+                <div style="font-size: 0.8rem; font-weight: 600; color: var(--gray-600); margin-bottom: 8px;">MongoDB Storage</div>
+                <div id="storageText" style="font-size: 0.85rem; color: var(--gray-700);">Loading...</div>
+                <div style="width: 100%; height: 8px; background: var(--gray-100); border-radius: 4px; margin-top: 8px; overflow: hidden;">
+                    <div id="storageBar" style="width: 0%; height: 100%; background: var(--primary); border-radius: 4px; transition: width 0.3s;"></div>
+                </div>
+            </div>
+            
+            <button id="restartSystemBtn" style="margin-top: 8px; width: 100%; padding: 10px; background: #ef4444; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: 0.2s;">
+                ⚠️ Restart System
+            </button>
         </aside>
         <main class="admin-main">
             <!-- Tab Content -->
@@ -1129,6 +1145,39 @@
                 showToast(err.message || 'Failed to reset rankings', 'error');
             }
         });
+
+        document.getElementById('restartSystemBtn').addEventListener('click', async () => {
+            const confirmed = await showConfirmModal('This will DELETE ALL DATA and restart the server. Are you absolutely sure?', 'Restart System');
+            if (!confirmed) return;
+            try {
+                await apiFetch('/admin/full-reset', { method: 'POST' });
+                showToast('System is restarting...', 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            } catch (err) {
+                showToast(err.message || 'Failed to restart system', 'error');
+            }
+        });
+
+        async function loadStorageInfo() {
+            try {
+                const data = await apiFetch('/admin/storage');
+                if (data.connected === false) {
+                    document.getElementById('storageText').textContent = data.message || 'Not connected to MongoDB';
+                    document.getElementById('storageBar').style.width = '0%';
+                    return;
+                }
+                document.getElementById('storageText').textContent = `Used: ${data.dataSize} MB | Objects: ${data.objects}`;
+                const percentage = Math.min((parseFloat(data.dataSize) / 500) * 100, 100);
+                document.getElementById('storageBar').style.width = percentage + '%';
+            } catch (err) {
+                document.getElementById('storageText').textContent = 'Failed to load storage info';
+            }
+        }
+
+        loadStorageInfo();
+        setInterval(loadStorageInfo, 30000);
 
         checkAuth();
 
