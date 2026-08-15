@@ -1151,10 +1151,10 @@
             if (!confirmed) return;
             try {
                 await apiFetch('/admin/full-reset', { method: 'POST' });
-                showToast('System is restarting...', 'success');
+                showToast('System reset complete. Data cleared and defaults restored.', 'success');
                 setTimeout(() => {
                     window.location.reload();
-                }, 3000);
+                }, 1500);
             } catch (err) {
                 showToast(err.message || 'Failed to restart system', 'error');
             }
