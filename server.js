@@ -1135,7 +1135,8 @@ app.get('/api/feedback', authenticateToken, async (req, res) => {
             const questionMap = {};
             questions.forEach(q => { questionMap[q._id.toString()] = q; });
 
-            const q6Question = Object.values(questionMap).find(q => q.id === 'q6');
+            const yesNoQuestions = Object.values(questionMap).filter(q => q.type === 'yes_no').sort((a, b) => (b.display_order || 0) - (a.display_order || 0));
+            const q6Question = yesNoQuestions.length > 0 ? yesNoQuestions[0] : Object.values(questionMap).find(q => q.id === 'q6');
             const q6ObjectId = q6Question ? q6Question._id.toString() : null;
 
             const answersByFeedback = {};
@@ -1199,7 +1200,9 @@ app.get('/api/feedback', authenticateToken, async (req, res) => {
                         } : null;
                     })
                     .filter(Boolean);
-                const recommendationAnswer = feedbackAnswers.find(fa => fa.question_id === 'q6')?.answer || null;
+                const yesNoQuestions = fallbackData.questions.filter(q => q.type === 'yes_no').sort((a, b) => (b.display_order || 0) - (a.display_order || 0));
+                const lastYesNoId = yesNoQuestions.length > 0 ? yesNoQuestions[0].id : 'q6';
+                const recommendationAnswer = feedbackAnswers.find(fa => fa.question_id === lastYesNoId)?.answer || null;
                 return {
                     id: f.id,
                     serverId: f.server_id,
@@ -1732,7 +1735,8 @@ app.get('/api/analytics/reports', authenticateToken, async (req, res) => {
                 { $sort: { avgRating: -1 } }
             ]).toArray();
 
-            const q6Question = await db.collection('questions').findOne({ id: 'q6' });
+            const yesNoQuestions = await db.collection('questions').find({ type: 'yes_no' }).sort({ display_order: -1 }).limit(1).toArray();
+            const q6Question = yesNoQuestions.length > 0 ? yesNoQuestions[0] : await db.collection('questions').findOne({ id: 'q6' });
             const q6Answers = q6Question ? await db.collection('feedbackanswers').find({ question_id: q6Question._id }).toArray() : [];
             const willReturn = q6Answers.filter(a => a.answer === 'Yes').length;
             const willNotReturn = q6Answers.filter(a => a.answer === 'No').length;
@@ -1808,7 +1812,9 @@ app.get('/api/analytics/reports', authenticateToken, async (req, res) => {
             }
             categoryRatings.sort((a, b) => b.avgRating - a.avgRating);
 
-            const q6Answers = fallbackData.feedbackAnswers.filter(fa => fa.question_id === 'q6');
+            const yesNoQuestions = fallbackData.questions.filter(q => q.type === 'yes_no').sort((a, b) => (b.display_order || 0) - (a.display_order || 0));
+            const lastYesNoId = yesNoQuestions.length > 0 ? yesNoQuestions[0].id : 'q6';
+            const q6Answers = fallbackData.feedbackAnswers.filter(fa => fa.question_id === lastYesNoId);
             const willReturn = q6Answers.filter(a => a.answer === 'Yes').length;
             const willNotReturn = q6Answers.filter(a => a.answer === 'No').length;
 
