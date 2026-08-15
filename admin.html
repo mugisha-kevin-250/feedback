@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ServeRate - Admin Dashboard</title>
+    <title>Avera - Admin Dashboard</title>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -869,7 +869,7 @@
 <body>
     <div id="loginOverlay">
         <div class="login-card">
-            <div class="login-logo">SR</div>
+            <div class="login-logo"><img src="/avera.png" alt="Avera" style="width: 64px; height: 64px; object-fit: contain;" onerror="this.parentElement.textContent='A'"></div>
             <h2>Welcome back</h2>
             <p>Sign in to access the admin dashboard</p>
             <form id="loginForm" autocomplete="off">
@@ -886,13 +886,13 @@
                 </button>
                 <div class="login-error" id="loginError"></div>
             </form>
-            <div class="login-footer">ServeRate Admin Panel</div>
+            <div class="login-footer">Avera Admin Panel</div>
         </div>
     </div>
     <div class="admin-page" id="adminPage" style="display:none;">
         <aside class="admin-sidebar">
             <div class="page-header">
-                <h1><span class="logo">Serve</span>Rate</h1>
+                <h1><img src="/avera.png" alt="Avera" style="height: 28px; width: auto; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'"><span class="logo">Avera</span></h1>
                 <button class="logout-btn" id="logoutBtn">Logout</button>
             </div>
             <div class="tabs" id="adminTabs">
@@ -1092,6 +1092,7 @@
                 const data = await apiFetch('/auth/login', {
                     method: 'POST',
                     body: JSON.stringify({ email, password }),
+                    logoutOn401: false
                 });
                 if (data.token) {
                     localStorage.setItem('serveRateToken', data.token);
@@ -1118,9 +1119,17 @@
                 return;
             }
             try {
-                await apiFetch('/auth/verify');
-                showAdmin();
-                initAdmin();
+                const res = await fetch(`${API_BASE}/auth/verify`, {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    credentials: 'include'
+                });
+                if (res.ok) {
+                    showAdmin();
+                    initAdmin();
+                } else {
+                    localStorage.removeItem('serveRateToken');
+                    showLogin();
+                }
             } catch (err) {
                 localStorage.removeItem('serveRateToken');
                 showLogin();
@@ -1599,18 +1608,18 @@
             const fab = document.createElement('button');
             fab.className = 'chatbot-fab';
             fab.innerHTML = '<i class="fas fa-robot"></i>';
-            fab.title = 'ServeRate Assistant';
+            fab.title = 'Avera Assistant';
             document.body.appendChild(fab);
 
             const panel = document.createElement('div');
             panel.className = 'chatbot-panel';
             panel.innerHTML = `
                 <div class="chatbot-header">
-                    <h3><i class="fas fa-robot"></i> ServeRate Assistant</h3>
+                    <h3><i class="fas fa-robot"></i> Avera Assistant</h3>
                     <button class="close-chatbot" id="chatbotClose"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="chatbot-messages" id="chatbotMessages">
-                    <div class="chatbot-message bot">Hello! I'm your ServeRate assistant. Click a button below to explore statistics, learn about questions, or download reports.</div>
+                    <div class="chatbot-message bot">Hello! I'm your Avera assistant. Click a button below to explore statistics, learn about questions, or download reports.</div>
                 </div>
                 <div class="chatbot-actions" id="chatbotActions">
                     <div class="chatbot-actions-title">Quick Actions</div>

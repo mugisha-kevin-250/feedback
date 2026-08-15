@@ -1436,7 +1436,7 @@ app.get('/api/customers/download-pdf', authenticateToken, async (req, res) => {
             if (!res.headersSent) res.status(500).json({ error: 'Failed to generate PDF' });
         });
 
-        doc.fontSize(20).text('ServeRate - Customer List', { align: 'center' });
+        doc.fontSize(20).text('Avera - Customer List', { align: 'center' });
         doc.moveDown(0.5);
         doc.fontSize(10).text(`Page ${page} | Generated on: ${new Date().toLocaleString()} | Showing ${skip + 1}-${Math.min(skip + limit, total)} of ${total}`, { align: 'center' });
         doc.moveDown(1);
@@ -2227,7 +2227,7 @@ function generatePDFBuffer(data, title) {
 app.get('/api/reports/download', authenticateToken, async (req, res) => {
     try {
         const data = await getReportData();
-        const pdfBuffer = await generatePDFBuffer(data, 'ServeRate - Full Report');
+        const pdfBuffer = await generatePDFBuffer(data, 'Avera - Full Report');
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=serverate-report.pdf');
         res.send(pdfBuffer);
@@ -2251,7 +2251,7 @@ app.get('/api/reports/servers/pdf', authenticateToken, async (req, res) => {
             serverRankings: data.serverRankings,
             recentFeedback: []
         };
-        const pdfBuffer = await generatePDFBuffer(serverData, 'ServeRate - Server Performance Report');
+        const pdfBuffer = await generatePDFBuffer(serverData, 'Avera - Server Performance Report');
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=serverate-servers.pdf');
         res.send(pdfBuffer);
@@ -2275,7 +2275,7 @@ app.get('/api/reports/categories/pdf', authenticateToken, async (req, res) => {
             categoryRatings: data.categoryRatings,
             recentFeedback: []
         };
-        const pdfBuffer = await generatePDFBuffer(categoryData, 'ServeRate - Category Analysis Report');
+        const pdfBuffer = await generatePDFBuffer(categoryData, 'Avera - Category Analysis Report');
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=serverate-categories.pdf');
         res.send(pdfBuffer);
@@ -2312,7 +2312,7 @@ app.use((err, req, res, next) => {
 // START SERVER
 // =============================================
 app.listen(PORT, async () => {
-    console.log(`\n🚀 ServeRate API running on http://localhost:${PORT}`);
+    console.log(`\n🚀 Avera API running on http://localhost:${PORT}`);
     console.log(`📊 Admin Dashboard: http://localhost:${PORT}/`);
     console.log(`🔑 Login: admin@serverate.com / admin123`);
     console.log(`💾 Mode: ${isMongoConnected ? 'MongoDB' : 'In-Memory (Fallback)'}`);

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>ServeRate · Customer</title>
+    <title>Avera · Customer</title>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -43,6 +43,11 @@
             color: #2d3748;
             flex-wrap: wrap;
             gap: 8px;
+        }
+        .brand-logo {
+            height: 36px;
+            width: auto;
+            object-fit: contain;
         }
         .server-badge {
             background: #eef2ff;
@@ -848,6 +853,7 @@
 <!-- CUSTOMER TABLET -->
 <div class="tablet-container" id="app">
     <div class="session-bar">
+        <img src="/avera.png" alt="Avera" class="brand-logo" style="height: 36px; width: auto;" onerror="this.style.display='none'">
         <div class="server-badge" id="serverBadge" title="Click to change server">
             <i class="fas fa-user-circle"></i> <span id="selectedServerName">Select server</span>
         </div>
