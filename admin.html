@@ -1480,8 +1480,8 @@
                 if (f.textAnswers && f.textAnswers.length > 0) {
                     feedbackText = f.textAnswers.map(ta => `<div style="margin-bottom:6px;"><strong style="color:#475569;">${escapeHtml(ta.questionText)}</strong><br>${escapeHtml(ta.answer)}</div>`).join('');
                 }
-                if (f.comment) {
-                    feedbackText += `<div style="margin-top:6px; color:#475569;"><strong>Additional comments:</strong> ${escapeHtml(f.comment)}</div>`;
+                if (!feedbackText && f.comment) {
+                    feedbackText = `<div style="color:#475569;"><strong>Additional comments:</strong> ${escapeHtml(f.comment)}</div>`;
                 }
                 if (!feedbackText) feedbackText = '-';
                 const customerInfo = f.customerName 

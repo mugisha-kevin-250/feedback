@@ -1176,8 +1176,8 @@ app.get('/api/feedback', authenticateToken, async (req, res) => {
                 id: f._id,
                 serverId: f.server_id,
                 serverName: serverMap[f.server_id.toString()] || 'Unknown',
-                overallRating: f.overall_rating,
-                serverRating: f.server_rating,
+                overallRating: Number(f.overall_rating),
+                serverRating: Number(f.server_rating),
                 comment: f.comment,
                 customerName: f.customer_name,
                 customerEmail: f.customer_email,
@@ -1577,7 +1577,7 @@ app.get('/api/feedback/download-excel', authenticateToken, async (req, res) => {
                     server: serverMap[f.server_id.toString()] || 'Unknown',
                     overallRating: f.overall_rating || 0,
                     serverRating: f.server_rating || 0,
-                    writtenFeedback: (f.comment || '') + (textAnswerStrings ? '; ' + textAnswerStrings : ''),
+                    writtenFeedback: textAnswerStrings || '',
                     willReturn: recommendation,
                     date: new Date(f.created_at).toLocaleDateString()
                 };
