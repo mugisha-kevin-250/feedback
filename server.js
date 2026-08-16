@@ -1575,8 +1575,8 @@ app.get('/api/feedback/download-excel', authenticateToken, async (req, res) => {
                     customerEmail: f.customer_email || '',
                     customerPhone: f.customer_phone || '',
                     server: serverMap[f.server_id.toString()] || 'Unknown',
-                    overallRating: f.overall_rating || 0,
-                    serverRating: f.server_rating || 0,
+                    overallRating: Number(f.overall_rating) || 0,
+                    serverRating: Number(f.server_rating) || 0,
                     writtenFeedback: textAnswerStrings || '',
                     willReturn: recommendation,
                     date: new Date(f.created_at).toLocaleDateString()
@@ -1591,8 +1591,8 @@ app.get('/api/feedback/download-excel', authenticateToken, async (req, res) => {
                     customerEmail: f.customer_email || '',
                     customerPhone: f.customer_phone || '',
                     server: fallbackData.servers.find(s => s.id === f.server_id)?.name || 'Unknown',
-                    overallRating: f.overall_rating || 0,
-                    serverRating: f.server_rating || 0,
+                    overallRating: Number(f.overall_rating) || 0,
+                    serverRating: Number(f.server_rating) || 0,
                     writtenFeedback: f.comment || '',
                     willReturn: recommendation,
                     date: new Date(f.created_at).toLocaleDateString()
