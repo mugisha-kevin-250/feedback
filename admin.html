@@ -954,10 +954,6 @@
         </div>
 
          <div id="tabFeedback" class="tab-content">
-             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
-                 <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--gray-800);">Feedback</h3>
-                 <button class="btn-add" id="downloadFeedbackCsvBtn"><i class="fas fa-download"></i> Download Excel</button>
-             </div>
              <div class="table-wrapper" style="overflow-x: auto;">
                  <table>
                       <thead><tr><th>Customer</th><th>Server</th><th>Overall</th><th>Server Rating</th><th>Written Feedback</th><th>Will Return</th><th>Date</th></tr></thead>
@@ -967,10 +963,6 @@
          </div>
 
          <div id="tabCustomers" class="tab-content">
-             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
-                 <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--gray-800);">Customer List</h3>
-                  <button class="btn-add" id="downloadCsvBtn"><i class="fas fa-download"></i> Download Excel</button>
-             </div>
              <div class="table-wrapper">
                  <table>
                      <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Date Added</th></tr></thead>
@@ -1559,62 +1551,6 @@
                 tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999;">No customers found</td></tr>';
             }
         }
-
-        document.getElementById('downloadCsvBtn').addEventListener('click', async () => {
-            try {
-                const token = localStorage.getItem('serveRateToken');
-                const res = await fetch('/api/customers/download-excel?page=1', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                    credentials: 'include',
-                });
-                if (!res.ok) {
-                    const data = await res.json().catch(() => ({ error: 'Download failed' }));
-                    throw new Error(data.error || 'Download failed');
-                }
-                const blob = await res.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'customers.csv';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                window.URL.revokeObjectURL(url);
-                showToast('Excel downloaded successfully', 'success');
-            } catch (err) {
-                showToast(err.message || 'Failed to download Excel', 'error');
-            }
-        });
-
-        document.getElementById('downloadFeedbackCsvBtn').addEventListener('click', async () => {
-            try {
-                const token = localStorage.getItem('serveRateToken');
-                const res = await fetch('/api/feedback/download-excel', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                    credentials: 'include',
-                });
-                if (!res.ok) {
-                    const data = await res.json().catch(() => ({ error: 'Download failed' }));
-                    throw new Error(data.error || 'Download failed');
-                }
-                const blob = await res.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'feedback.csv';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                window.URL.revokeObjectURL(url);
-                showToast('Excel downloaded successfully', 'success');
-            } catch (err) {
-                showToast(err.message || 'Failed to download Excel', 'error');
-            }
-        });
 
         // =============================================
         // CHATBOT
