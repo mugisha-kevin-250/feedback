@@ -1490,6 +1490,137 @@ app.get('/api/customers/download-pdf', authenticateToken, async (req, res) => {
     }
 });
 
+// Helper to convert JSON data to CSV
+function jsonToCsv(data, fields) {
+    const header = fields.map(f => f.label).join(',');
+    const rows = data.map(item => {
+        return fields.map(f => {
+            let value = item[f.key];
+            if (value === null || value === undefined) value = '';
+            if (typeof value === 'object') value = JSON.stringify(value);
+            const str = String(value);
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return '"' + str.replace(/"/g, '""') + '"';
+            }
+            return str;
+        }).join(',');
+    });
+    return [header, ...rows].join('\n');
+}
+
+// Download customers as CSV (Excel-compatible)
+app.get('/api/customers/download-excel', authenticateToken, async (req, res) => {
+    try {
+        let customers = [];
+        if (isMongoConnected) {
+            const db = mongoose.connection.db;
+            customers = await db.collection('customers').find().sort({ created_at: -1 }).toArray();
+        } else {
+            const sorted = [...fallbackData.customers].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            customers = sorted;
+        }
+
+        const csv = jsonToCsv(customers, [
+            { key: 'name', label: 'Name' },
+            { key: 'email', label: 'Email' },
+            { key: 'phone', label: 'Phone' },
+            { key: 'created_at', label: 'Date Added' }
+        ]);
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename=customers.csv');
+        res.send(csv);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to download customers Excel' });
+    }
+});
+
+// Download feedback as CSV (Excel-compatible)
+app.get('/api/feedback/download-excel', authenticateToken, async (req, res) => {
+    try {
+        let items = [];
+        if (isMongoConnected) {
+            const db = mongoose.connection.db;
+            const feedbacks = await db.collection('feedback').find().sort({ created_at: -1 }).toArray();
+
+            const serverIds = [...new Set(feedbacks.map(f => f.server_id))];
+            const servers = await db.collection('servers').find({ _id: { $in: serverIds } }).toArray();
+            const serverMap = {};
+            servers.forEach(s => { serverMap[s._id.toString()] = s.name; });
+
+            const feedbackIds = feedbacks.map(f => f._id);
+            const feedbackAnswers = await db.collection('feedbackanswers').find({ feedback_id: { $in: feedbackIds } }).toArray();
+
+            const questionIds = [...new Set(feedbackAnswers.map(fa => fa.question_id))];
+            const questions = await db.collection('questions').find({ _id: { $in: questionIds } }).toArray();
+            const questionMap = {};
+            questions.forEach(q => { questionMap[q._id.toString()] = q; });
+
+            const yesNoQuestions = Object.values(questionMap).filter(q => q.type === 'yes_no').sort((a, b) => (b.display_order || 0) - (a.display_order || 0));
+            const q6Question = yesNoQuestions.length > 0 ? yesNoQuestions[0] : Object.values(questionMap).find(q => q.id === 'q6');
+            const q6ObjectId = q6Question ? q6Question._id.toString() : null;
+
+            items = feedbacks.map(f => {
+                const textAnswers = feedbackAnswers.filter(fa => fa.feedback_id.toString() === f._id.toString() && q6ObjectId && fa.question_id.toString() === q6ObjectId);
+                const recommendation = textAnswers.length > 0 ? textAnswers[0].answer : '';
+                const allTextAnswers = feedbackAnswers.filter(fa => fa.feedback_id.toString() === f._id.toString());
+                const textAnswerStrings = allTextAnswers.map(fa => {
+                    const q = questionMap[fa.question_id.toString()];
+                    return q && q.type === 'text' ? `${q.text}: ${fa.answer}` : null;
+                }).filter(Boolean).join('; ');
+
+                return {
+                    customerName: f.customer_name || '',
+                    customerEmail: f.customer_email || '',
+                    customerPhone: f.customer_phone || '',
+                    server: serverMap[f.server_id.toString()] || 'Unknown',
+                    overallRating: f.overall_rating || 0,
+                    serverRating: f.server_rating || 0,
+                    writtenFeedback: (f.comment || '') + (textAnswerStrings ? '; ' + textAnswerStrings : ''),
+                    willReturn: recommendation,
+                    date: new Date(f.created_at).toLocaleDateString()
+                };
+            });
+        } else {
+            const fb = [...fallbackData.feedback].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            items = fb.map(f => {
+                const recommendation = fallbackData.feedbackAnswers.find(fa => fa.feedback_id === f.id && fa.question_id === 'q6')?.answer || '';
+                return {
+                    customerName: f.customer_name || '',
+                    customerEmail: f.customer_email || '',
+                    customerPhone: f.customer_phone || '',
+                    server: fallbackData.servers.find(s => s.id === f.server_id)?.name || 'Unknown',
+                    overallRating: f.overall_rating || 0,
+                    serverRating: f.server_rating || 0,
+                    writtenFeedback: f.comment || '',
+                    willReturn: recommendation,
+                    date: new Date(f.created_at).toLocaleDateString()
+                };
+            });
+        }
+
+        const csv = jsonToCsv(items, [
+            { key: 'customerName', label: 'Customer' },
+            { key: 'customerEmail', label: 'Email' },
+            { key: 'customerPhone', label: 'Phone' },
+            { key: 'server', label: 'Server' },
+            { key: 'overallRating', label: 'Overall' },
+            { key: 'serverRating', label: 'Server Rating' },
+            { key: 'writtenFeedback', label: 'Written Feedback' },
+            { key: 'willReturn', label: 'Will Return' },
+            { key: 'date', label: 'Date' }
+        ]);
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename=feedback.csv');
+        res.send(csv);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to download feedback Excel' });
+    }
+});
+
 // =============================================
 // ANALYTICS ROUTES
 // =============================================
