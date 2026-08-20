@@ -82,6 +82,7 @@
             display: flex;
             flex-direction: column;
             gap: 28px;
+            position: relative;
         }
         .welcome-screen {
             text-align: center;
@@ -435,6 +436,31 @@
         }
         .hidden {
             display: none !important;
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.92);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            border-radius: inherit;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .loading-overlay i {
+            font-size: 3.2rem;
+            color: #4f46e5;
+            animation: spin 1s linear infinite;
+        }
+        .loading-overlay p {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #475569;
         }
         .progress-dots {
             display: flex;
@@ -839,6 +865,10 @@
         <img src="/avera.png" alt="Avera" class="brand-logo" onerror="this.style.display='none'">
     </div>
     <div class="feedback-card" id="feedbackCard">
+        <div id="loadingOverlay" class="loading-overlay hidden">
+            <i class="fas fa-spinner"></i>
+            <p>Loading...</p>
+        </div>
         <!-- Server selection (step 0) -->
         <div id="serverSelectScreen" class="welcome-screen">
             <div class="icon-large"><i class="fas fa-user-tie"></i></div>
@@ -957,6 +987,7 @@
         }
 
         async function loadServers() {
+            showLoader();
             try {
                 const data = await apiFetch('/servers/ranked');
                 const servers = Array.isArray(data) ? data.filter(s => s.status === 'active') : [];
@@ -1010,10 +1041,13 @@
                 console.error('Failed to load servers:', err);
                 dom.noServersMsg.classList.remove('hidden');
                 dom.noServersMsg.textContent = 'Error loading servers. Please try again.';
+            } finally {
+                hideLoader();
             }
         }
 
         async function loadQuestions() {
+            showLoader();
             try {
                 const data = await apiFetch('/questions/active');
                 questions = data.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
@@ -1031,6 +1065,8 @@
             } catch (err) {
                 console.error('Failed to load questions:', err);
                 return [];
+            } finally {
+                hideLoader();
             }
         }
 
@@ -1085,6 +1121,14 @@
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
+        }
+
+        function showLoader() {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+
+        function hideLoader() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
         }
 
         function renderAllQuestions() {
@@ -1282,6 +1326,8 @@
             }
 
             const customerName = document.getElementById('customerName').value.trim();
+            const customerEmail = document.getElementById('customerEmail').value.trim();
+            const customerPhone = document.getElementById('customerPhone').value.trim();
             const textQuestion = questions.find(q => q.type === 'text');
             const comment = textQuestion ? (answers[textQuestion.id] || '') : '';
 
