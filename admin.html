@@ -1464,7 +1464,7 @@
 
         // ---- Feedback ----
         async function renderFeedback() {
-            const data = await apiFetch('/feedback');
+            const data = await apiFetch('/feedback?limit=1000');
             const items = data.items || [];
             const tbody = document.getElementById('feedbackTableBody');
             tbody.innerHTML = items.map(f => {
