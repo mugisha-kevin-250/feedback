@@ -1106,7 +1106,8 @@ app.post('/api/feedback', [
 // Get feedback (authenticated)
 app.get('/api/feedback', authenticateToken, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const requestedLimit = parseInt(req.query.limit) || 1000;
+    const limit = Math.min(Math.max(requestedLimit, 1), 1000);
     const skip = (page - 1) * limit;
     const search = req.query.search || '';
     const serverId = req.query.serverId;

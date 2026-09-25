@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Avera logo">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="118" fill="url(#bg)"/>
+  <path d="M128 388L208 124h96l80 264h-74l-14-49h-88l-14 49h-74zm94-90h52l-26-87-26 87z" fill="#ffffff"/>
+  <circle cx="256" cy="158" r="22" fill="#f8fafc" opacity="0.2"/>
+</svg>
