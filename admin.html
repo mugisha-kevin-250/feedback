@@ -1038,6 +1038,12 @@
     <script>
         const API_BASE = 'https://customer-feedback-rev1.onrender.com/api';
 
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+            });
+        }
+
         function getAuthHeaders() {
             const token = localStorage.getItem('serveRateToken');
             const headers = {
@@ -1073,6 +1079,8 @@
         function showAdmin() {
             document.getElementById('loginOverlay').classList.add('hidden');
             document.getElementById('adminPage').style.display = 'flex';
+            loadStorageInfo();
+            setInterval(loadStorageInfo, 30000);
         }
 
         async function login() {
@@ -1155,8 +1163,9 @@
         });
 
         async function loadStorageInfo() {
+            if (!localStorage.getItem('serveRateToken')) return;
             try {
-                const data = await apiFetch('/admin/storage');
+                const data = await apiFetch('/admin/storage', { logoutOn401: false });
                 if (data.connected === false) {
                     document.getElementById('storageText').textContent = data.message || 'Not connected to MongoDB';
                     document.getElementById('storageBar').style.width = '0%';
@@ -1169,9 +1178,6 @@
                 document.getElementById('storageText').textContent = 'Failed to load storage info';
             }
         }
-
-        loadStorageInfo();
-        setInterval(loadStorageInfo, 30000);
 
         checkAuth();
 

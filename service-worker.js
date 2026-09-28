@@ -1,9 +1,10 @@
-const CACHE_NAME = 'avera-feedback-v1';
+const CACHE_NAME = 'avera-feedback-v2';
 const APP_SHELL = [
   '/',
   '/index.html',
   '/admin.html',
-  '/manifest.webmanifest'
+  '/manifest.webmanifest',
+  '/icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -21,13 +22,24 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Bypass SW cache entirely for API requests - always hit the network
+  if (url.pathname.startsWith('/api/')) {
+    return;
+  }
+
   if (event.request.method !== 'GET') return;
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
       return fetch(event.request).then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        // Only cache successful (2xx) responses; never cache 401/403/4xx/5xx
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
         return response;
       }).catch(() => caches.match('/index.html'));
     })
