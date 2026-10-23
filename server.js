@@ -2097,6 +2097,12 @@ async function getReportData() {
             { $sort: { avgRating: -1 } }
         ]).toArray();
 
+        const yesNoQuestion = await db.collection('questions').find({ type: 'yes_no' }).sort({ display_order: -1 }).limit(1).toArray();
+        const returnQuestion = yesNoQuestion[0] || null;
+        const yesNoAnswers = returnQuestion ? await db.collection('feedbackanswers').find({ question_id: returnQuestion._id }).toArray() : [];
+        const willReturn = yesNoAnswers.filter(a => a.answer === 'Yes').length;
+        const willNotReturn = yesNoAnswers.filter(a => a.answer === 'No').length;
+
         const serverMap = {};
         serverDocs.forEach(s => {
             serverMap[s._id.toString()] = s.name;
@@ -2138,6 +2144,8 @@ async function getReportData() {
             positive,
             negative,
             totalWithRating: totalWithRating || 1,
+            willReturn,
+            willNotReturn,
             serverRankings: serverRankings.map(s => ({
                 name: s.server.name,
                 count: s.count,
@@ -2205,6 +2213,11 @@ async function getReportData() {
         }
         categoryRatings.sort((a, b) => b.avgRating - a.avgRating);
 
+        const yesNoQuestions = fallbackData.questions.filter(q => q.type === 'yes_no').sort((a, b) => (b.display_order || 0) - (a.display_order || 0));
+        const returnQuestion = yesNoQuestions[0] || null;
+        const willReturn = returnQuestion ? fallbackData.feedbackAnswers.filter(fa => fa.question_id === returnQuestion.id && fa.answer === 'Yes').length : 0;
+        const willNotReturn = returnQuestion ? fallbackData.feedbackAnswers.filter(fa => fa.question_id === returnQuestion.id && fa.answer === 'No').length : 0;
+
         const feedbackRows = fb.map(f => {
             const answers = fallbackData.feedbackAnswers.filter(a => a.feedback_id === f.id).map(a => {
                 const q = fallbackData.questions.find(question => question.id === a.question_id);
@@ -2232,6 +2245,8 @@ async function getReportData() {
             positive,
             negative,
             totalWithRating,
+            willReturn,
+            willNotReturn,
             serverRankings,
             categoryRatings,
             customers: fallbackData.customers.map(c => ({
@@ -2276,22 +2291,23 @@ function drawBarChart(doc, items, x, y, width, height, color) {
 }
 
 function drawTable(doc, headers, rows, startX, startY, colWidth, rowHeight, headerFill) {
-    const tableHeight = rowHeight * Math.max(rows.length + 1, 1);
-    doc.fillColor(headerFill).rect(startX, startY, headers.reduce((sum, _, idx) => sum + colWidth[idx], 0), rowHeight).fill();
+    const tableWidth = headers.reduce((sum, _, idx) => sum + colWidth[idx], 0);
+    doc.fillColor(headerFill).rect(startX, startY, tableWidth, rowHeight).fill();
     doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold');
     headers.forEach((header, idx) => {
         const xPos = startX + headers.slice(0, idx).reduce((sum, _, innerIdx) => sum + colWidth[innerIdx], 0);
-        doc.text(header, xPos + 6, startY + 5, { width: colWidth[idx] - 8, align: 'left' });
+        doc.text(header, xPos + 5, startY + 5, { width: colWidth[idx] - 8, align: 'left' });
     });
 
     let currentY = startY + rowHeight;
     doc.font('Helvetica').fillColor('#111827');
-    rows.forEach(row => {
-        doc.fillColor((currentY / 2 % 2 === 0) ? '#f8fbff' : '#ffffff').rect(startX, currentY, headers.reduce((sum, _, idx) => sum + colWidth[idx], 0), rowHeight).fill();
+    rows.forEach((row, rowIndex) => {
+        const fillColor = rowIndex % 2 === 0 ? '#f8fbff' : '#ffffff';
+        doc.fillColor(fillColor).rect(startX, currentY, tableWidth, rowHeight).fill();
         row.forEach((cell, idx) => {
             const xPos = startX + headers.slice(0, idx).reduce((sum, _, innerIdx) => sum + colWidth[innerIdx], 0);
             const text = String(cell || '');
-            doc.text(text, xPos + 6, currentY + 6, { width: colWidth[idx] - 8, align: 'left' });
+            doc.fillColor('#111827').fontSize(7).text(text, xPos + 5, currentY + 5, { width: colWidth[idx] - 8, align: 'left' });
         });
         currentY += rowHeight;
     });
@@ -2315,11 +2331,12 @@ function generatePDFBuffer(data, title) {
         doc.fillColor(white).fontSize(22).font('Helvetica-Bold').text(title, 50, 24);
         doc.fillColor('#dbeafe').fontSize(9).font('Helvetica').text('Generated: ' + new Date().toLocaleString(), 50, 52);
 
+        const returnRate = data.totalFeedback ? (((data.willReturn || 0) / data.totalFeedback) * 100) : 0;
         const metrics = [
             { label: 'Feedback', value: String(data.totalFeedback || 0), tone: '#2563eb' },
             { label: 'Avg Food', value: `${(data.avgRestaurant || 0).toFixed(1)}/5`, tone: '#3b82f6' },
             { label: 'Avg Service', value: `${(data.avgServer || 0).toFixed(1)}/5`, tone: '#60a5fa' },
-            { label: 'Return', value: String(data.returnRate || 0), tone: '#10b981' }
+            { label: 'Return', value: `${returnRate.toFixed(0)}%`, tone: '#10b981' }
         ];
 
         let metricX = 50;
@@ -2348,12 +2365,12 @@ function generatePDFBuffer(data, title) {
         doc.fillColor(text).fontSize(12).font('Helvetica-Bold').text('Category Ratings', 70, 408);
         const categoryChart = (data.categoryRatings || []).slice(0, 6).map(item => ({ label: item.category ? item.category.substring(0, 9) : 'Other', value: Number(item.avgRating || 0) }));
         if (categoryChart.length) {
-            drawBarChart(doc, categoryChart, 70, 432, 260, 80, '#2563eb');
+            drawBarChart(doc, categoryChart, 70, 432, 230, 80, '#2563eb');
         }
         const categoryRows = (data.categoryRatings || []).slice(0, 6).map((c, idx) => [
             String(idx + 1), c.category || 'Uncategorized', `${(c.avgRating || 0).toFixed(1)}`, `${c.count || 0}`
         ]);
-        drawTable(doc, ['#', 'Category', 'Avg', 'Resp'], categoryRows, 350, 432, [25, 120, 60, 55], 16, '#1d4ed8');
+        drawTable(doc, ['#', 'Category', 'Avg', 'Resp'], categoryRows, 315, 432, [24, 110, 55, 45], 16, '#1d4ed8');
 
         let yPos = 560;
         if ((data.customers || []).length) {
