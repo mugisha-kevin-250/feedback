@@ -16,7 +16,6 @@ const app = express();
 app.set('trust proxy', 1);
 
 const FALLBACK_DATA_FILE = path.join(__dirname, 'fallback-data.json');
-const RANKING_RESET_FILE = path.join(__dirname, 'ranking-reset.json');
 
 function loadFallbackDataFromFile() {
     try {
@@ -41,68 +40,6 @@ function saveFallbackDataToFile() {
     }
 }
 
-function getLastRankingReset() {
-    try {
-        if (fs.existsSync(RANKING_RESET_FILE)) {
-            const data = fs.readFileSync(RANKING_RESET_FILE, 'utf8');
-            const parsed = JSON.parse(data);
-            return parsed.lastReset ? new Date(parsed.lastReset) : null;
-        }
-    } catch (err) {
-        console.error('Failed to load ranking reset date:', err);
-    }
-    return null;
-}
-
-function setLastRankingReset() {
-    try {
-        fs.writeFileSync(RANKING_RESET_FILE, JSON.stringify({ lastReset: new Date().toISOString() }, null, 2));
-    } catch (err) {
-        console.error('Failed to save ranking reset date:', err);
-    }
-}
-
-async function checkAndResetRankingsIfNeeded() {
-    const twoMonthsAgo = new Date();
-    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-
-    let lastReset = null;
-    if (isMongoConnected) {
-        try {
-            const db = mongoose.connection.db;
-            const record = await db.collection('ranking_resets').findOne({ _id: 'last_reset' });
-            if (record && record.date) lastReset = new Date(record.date);
-        } catch (err) {
-            console.error('Failed to check ranking reset in MongoDB:', err);
-        }
-    } else {
-        lastReset = getLastRankingReset();
-    }
-
-    if (!lastReset || lastReset < twoMonthsAgo) {
-        console.log('🔄 Resetting rankings (2 month cycle)...');
-        if (isMongoConnected) {
-            try {
-                const db = mongoose.connection.db;
-                await db.collection('feedback').deleteMany({});
-                await db.collection('feedbackanswers').deleteMany({});
-                await db.collection('ranking_resets').updateOne(
-                    { _id: 'last_reset' },
-                    { $set: { date: new Date() } },
-                    { upsert: true }
-                );
-            } catch (err) {
-                console.error('Failed to reset rankings in MongoDB:', err);
-            }
-        } else {
-            fallbackData.feedback = [];
-            fallbackData.feedbackAnswers = [];
-            saveFallbackDataToFile();
-            setLastRankingReset();
-        }
-        console.log('✅ Rankings reset complete');
-    }
-}
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'serveRate-super-secret-key-change-in-production-2026';
 const JWT_EXPIRY = '7d';
@@ -1530,7 +1467,7 @@ app.get('/api/customers/download-excel', authenticateToken, async (req, res) => 
 
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', 'attachment; filename=customers.csv');
-        res.send(csv);
+        res.send(csv);h
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to download customers Excel' });
@@ -1626,14 +1563,12 @@ app.get('/api/feedback/download-excel', authenticateToken, async (req, res) => {
 // ANALYTICS ROUTES
 // =============================================
 
-// Dashboard analytics
 app.get('/api/analytics/dashboard', authenticateToken, async (req, res) => {
     try {
         let data = {};
 
         if (isMongoConnected) {
             const db = mongoose.connection.db;
-            
             const [
                 totalFeedback,
                 totalRatings,
@@ -1648,8 +1583,8 @@ app.get('/api/analytics/dashboard', authenticateToken, async (req, res) => {
                 db.collection('feedback').countDocuments(),
                 db.collection('feedback').countDocuments({ overall_rating: { $ne: null } }),
                 db.collection('feedback').countDocuments({ server_rating: { $ne: null } }),
-                db.collection('feedback').countDocuments({ 
-                    created_at: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } 
+                db.collection('feedback').countDocuments({
+                    created_at: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
                 }),
                 db.collection('feedback').aggregate([
                     { $match: { overall_rating: { $ne: null } } },
@@ -2005,35 +1940,7 @@ app.get('/api/analytics/reports', authenticateToken, async (req, res) => {
 });
 
 // =============================================
-// RANKING RESET ROUTES
-// =============================================
-
-app.post('/api/admin/reset-rankings', authenticateToken, async (req, res) => {
-    try {
-        if (isMongoConnected) {
-            const db = mongoose.connection.db;
-            await db.collection('feedback').deleteMany({});
-            await db.collection('feedbackanswers').deleteMany({});
-            await db.collection('ranking_resets').updateOne(
-                { _id: 'last_reset' },
-                { $set: { date: new Date() } },
-                { upsert: true }
-            );
-        } else {
-            fallbackData.feedback = [];
-            fallbackData.feedbackAnswers = [];
-            saveFallbackDataToFile();
-            setLastRankingReset();
-        }
-        res.json({ success: true, message: 'Rankings reset successfully' });
-    } catch (err) {
-        console.error('Reset rankings error:', err);
-        res.status(500).json({ error: 'Failed to reset rankings' });
-    }
-});
-
-// =============================================
-// ADMIN STORAGE & FULL RESET ROUTES
+// ADMIN STORAGE ROUTES
 // =============================================
 
 app.get('/api/admin/storage', authenticateToken, async (req, res) => {
@@ -2062,32 +1969,6 @@ app.get('/api/admin/storage', authenticateToken, async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to get storage info' });
-    }
-});
-
-app.post('/api/admin/full-reset', authenticateToken, async (req, res) => {
-    try {
-        if (isMongoConnected) {
-            const db = mongoose.connection.db;
-            const collections = await db.listCollections().toArray();
-            for (const collection of collections) {
-                await db.collection(collection.name).deleteMany({});
-            }
-            await seedDatabase();
-        } else {
-            if (fs.existsSync(FALLBACK_DATA_FILE)) {
-                fs.unlinkSync(FALLBACK_DATA_FILE);
-            }
-            if (fs.existsSync(RANKING_RESET_FILE)) {
-                fs.unlinkSync(RANKING_RESET_FILE);
-            }
-            initializeFallbackData();
-        }
-        
-        res.json({ success: true, message: 'System reset complete. All data has been cleared and default data restored.' });
-    } catch (err) {
-        console.error('Full reset error:', err);
-        res.status(500).json({ error: 'Failed to reset system' });
     }
 });
 
@@ -2174,7 +2055,12 @@ async function getReportData() {
             avgServer,
             positive,
             negative,
-            totalWithRating
+            totalWithRating,
+            customerDocs,
+            allFeedback,
+            serverDocs,
+            questionDocs,
+            feedbackAnswersDocs
         ] = await Promise.all([
             db.collection('feedback').countDocuments(),
             db.collection('feedback').aggregate([
@@ -2187,7 +2073,12 @@ async function getReportData() {
             ]).toArray(),
             db.collection('feedback').countDocuments({ overall_rating: { $gte: 4 } }),
             db.collection('feedback').countDocuments({ overall_rating: { $lte: 2 } }),
-            db.collection('feedback').countDocuments({ overall_rating: { $ne: null } })
+            db.collection('feedback').countDocuments({ overall_rating: { $ne: null } }),
+            db.collection('customers').find({}).sort({ created_at: -1 }).toArray(),
+            db.collection('feedback').find({}).sort({ created_at: -1 }).toArray(),
+            db.collection('servers').find({}).sort({ created_at: 1 }).toArray(),
+            db.collection('questions').find({}).sort({ display_order: 1 }).toArray(),
+            db.collection('feedbackanswers').find({}).sort({ created_at: 1 }).toArray()
         ]);
 
         const serverRankings = await db.collection('feedback').aggregate([
@@ -2206,13 +2097,39 @@ async function getReportData() {
             { $sort: { avgRating: -1 } }
         ]).toArray();
 
-        const recentFeedback = await db.collection('feedback')
-            .find().sort({ created_at: -1 }).limit(20).toArray();
-
-        const serverIds = [...new Set(recentFeedback.map(f => f.server_id))];
-        const servers = await db.collection('servers').find({ _id: { $in: serverIds } }).toArray();
         const serverMap = {};
-        servers.forEach(s => { serverMap[s._id.toString()] = s.name; });
+        serverDocs.forEach(s => {
+            serverMap[s._id.toString()] = s.name;
+        });
+
+        const questionMap = {};
+        questionDocs.forEach(q => {
+            questionMap[q._id.toString()] = q;
+        });
+
+        const feedbackRows = allFeedback.map(f => {
+            const answers = feedbackAnswersDocs.filter(a => a.feedback_id.toString() === f._id.toString());
+            const questionsAnswered = answers.map(a => {
+                const q = questionMap[a.question_id.toString()];
+                return {
+                    question: q ? q.text : 'Answer',
+                    answer: a.answer || ''
+                };
+            });
+            return {
+                id: f._id.toString(),
+                serverName: serverMap[f.server_id.toString()] || 'Unknown',
+                customerName: f.customer_name || 'Anonymous',
+                customerEmail: f.customer_email || '',
+                customerPhone: f.customer_phone || '',
+                overallRating: f.overall_rating || 0,
+                serverRating: f.server_rating || 0,
+                comment: f.comment || '',
+                createdAt: f.created_at || new Date(),
+                answers: questionsAnswered,
+                recommendation: questionsAnswered.find(a => a.question.toLowerCase().includes('return'))?.answer || ''
+            };
+        });
 
         data = {
             totalFeedback,
@@ -2232,12 +2149,18 @@ async function getReportData() {
                 avgRating: c.avgRating || 0,
                 count: c.count
             })),
-            recentFeedback: recentFeedback.map(f => ({
-                serverName: serverMap[f.server_id.toString()] || 'Unknown',
-                overallRating: f.overall_rating,
-                serverRating: f.server_rating,
-                comment: f.comment,
-                createdAt: f.created_at
+            customers: customerDocs.map(c => ({
+                name: c.name || 'Unknown',
+                email: c.email || '',
+                phone: c.phone || '',
+                createdAt: c.created_at || new Date()
+            })),
+            recentFeedback: feedbackRows.slice(0, 50),
+            feedback: feedbackRows,
+            servers: serverDocs.map(s => ({
+                name: s.name,
+                status: s.status,
+                createdAt: s.created_at || new Date() 
             }))
         };
     } else {
@@ -2282,6 +2205,26 @@ async function getReportData() {
         }
         categoryRatings.sort((a, b) => b.avgRating - a.avgRating);
 
+        const feedbackRows = fb.map(f => {
+            const answers = fallbackData.feedbackAnswers.filter(a => a.feedback_id === f.id).map(a => {
+                const q = fallbackData.questions.find(question => question.id === a.question_id);
+                return { question: q ? q.text : 'Answer', answer: a.answer || '' };
+            });
+            return {
+                id: f.id,
+                serverName: fallbackData.servers.find(s => s.id === f.server_id)?.name || 'Unknown',
+                customerName: f.customer_name || 'Anonymous',
+                customerEmail: f.customer_email || '',
+                customerPhone: f.customer_phone || '',
+                overallRating: f.overall_rating || 0,
+                serverRating: f.server_rating || 0,
+                comment: f.comment || '',
+                createdAt: f.created_at || new Date(),
+                answers,
+                recommendation: answers.find(a => a.question.toLowerCase().includes('return'))?.answer || ''
+            };
+        });
+
         data = {
             totalFeedback: total,
             avgRestaurant: avgRest,
@@ -2291,64 +2234,163 @@ async function getReportData() {
             totalWithRating,
             serverRankings,
             categoryRatings,
-            recentFeedback: fb.slice(-20).reverse().map(f => ({
-                serverName: fallbackData.servers.find(s => s.id === f.server_id)?.name || 'Unknown',
-                overallRating: f.overall_rating,
-                serverRating: f.server_rating,
-                comment: f.comment,
-                createdAt: f.created_at
+            customers: fallbackData.customers.map(c => ({
+                name: c.name || 'Unknown',
+                email: c.email || '',
+                phone: c.phone || '',
+                createdAt: c.created_at || new Date()
+            })),
+            feedback: feedbackRows,
+            recentFeedback: feedbackRows.slice(0, 50),
+            servers: fallbackData.servers.map(s => ({
+                name: s.name,
+                status: s.status,
+                createdAt: s.created_at || new Date()
             }))
         };
     }
     return data;
 }
 
+function drawBarChart(doc, items, x, y, width, height, color) {
+    const maxValue = Math.max(...items.map(item => item.value || 0), 1);
+    const chartHeight = height;
+    const barGap = 12;
+    const barWidth = items.length > 0 ? (width - (items.length - 1) * barGap) / items.length : 0;
+
+    doc.lineWidth(1).strokeColor('#dfeaf8');
+    for (let i = 0; i <= 4; i++) {
+        const lineY = y + (chartHeight / 4) * i;
+        doc.moveTo(x, lineY).lineTo(x + width, lineY).stroke();
+    }
+
+    items.forEach((item, index) => {
+        const barHeight = Math.max((item.value / maxValue) * chartHeight, item.value > 0 ? 8 : 0);
+        const xPos = x + index * (barWidth + barGap);
+        const yPos = y + chartHeight - barHeight;
+
+        doc.fillColor(color).rect(xPos, yPos, barWidth, barHeight).fill();
+        doc.fillColor('#1e293b').fontSize(7).text(String(item.label || ''), xPos, y + chartHeight + 8, { width: barWidth, align: 'center' });
+        doc.fillColor('#475569').fontSize(7).text(String(item.value || 0), xPos, Math.max(yPos - 18, 12), { width: barWidth, align: 'center' });
+    });
+}
+
+function drawTable(doc, headers, rows, startX, startY, colWidth, rowHeight, headerFill) {
+    const tableHeight = rowHeight * Math.max(rows.length + 1, 1);
+    doc.fillColor(headerFill).rect(startX, startY, headers.reduce((sum, _, idx) => sum + colWidth[idx], 0), rowHeight).fill();
+    doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold');
+    headers.forEach((header, idx) => {
+        const xPos = startX + headers.slice(0, idx).reduce((sum, _, innerIdx) => sum + colWidth[innerIdx], 0);
+        doc.text(header, xPos + 6, startY + 5, { width: colWidth[idx] - 8, align: 'left' });
+    });
+
+    let currentY = startY + rowHeight;
+    doc.font('Helvetica').fillColor('#111827');
+    rows.forEach(row => {
+        doc.fillColor((currentY / 2 % 2 === 0) ? '#f8fbff' : '#ffffff').rect(startX, currentY, headers.reduce((sum, _, idx) => sum + colWidth[idx], 0), rowHeight).fill();
+        row.forEach((cell, idx) => {
+            const xPos = startX + headers.slice(0, idx).reduce((sum, _, innerIdx) => sum + colWidth[innerIdx], 0);
+            const text = String(cell || '');
+            doc.text(text, xPos + 6, currentY + 6, { width: colWidth[idx] - 8, align: 'left' });
+        });
+        currentY += rowHeight;
+    });
+}
+
 function generatePDFBuffer(data, title) {
     return new Promise((resolve, reject) => {
-        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        const doc = new PDFDocument({ margin: 0, size: 'A4' });
         const chunks = [];
         doc.on('data', chunk => chunks.push(chunk));
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', reject);
 
-        doc.fontSize(20).text(title, { align: 'center' });
-        doc.moveDown(0.5);
-        doc.fontSize(10).text('Generated on: ' + new Date().toLocaleString(), { align: 'center' });
-        doc.moveDown(1);
+        const blue = '#1d4ed8';
+        const lightBlue = '#eff6ff';
+        const white = '#ffffff';
+        const text = '#0f172a';
+        const muted = '#475569';
 
-        doc.fontSize(14).text('Overview', { underline: true });
-        doc.moveDown(0.3);
-        doc.fontSize(11).text(`Total Feedback: ${data.totalFeedback}`);
-        doc.text(`Average Restaurant Rating: ${(data.avgRestaurant || 0).toFixed(1)} / 5`);
-        doc.text(`Average Server Rating: ${(data.avgServer || 0).toFixed(1)} / 5`);
-        doc.text(`Positive Feedback (4-5): ${data.positive} (${Math.round((data.positive / data.totalWithRating) * 100)}%)`);
-        doc.text(`Negative Feedback (1-2): ${data.negative} (${Math.round((data.negative / data.totalWithRating) * 100)}%)`);
-        doc.moveDown(1);
+        doc.fillColor(blue).rect(0, 0, 595, 78).fill();
+        doc.fillColor(white).fontSize(22).font('Helvetica-Bold').text(title, 50, 24);
+        doc.fillColor('#dbeafe').fontSize(9).font('Helvetica').text('Generated: ' + new Date().toLocaleString(), 50, 52);
 
-        if (data.serverRankings && data.serverRankings.length > 0) {
-            doc.fontSize(14).text('Server Performance', { underline: true });
-            doc.moveDown(0.3);
-            data.serverRankings.forEach(s => {
-                doc.fontSize(11).text(`${s.name}: ${s.count} reviews, avg ${(s.avgRating || 0).toFixed(1)} / 5`);
-            });
-            doc.moveDown(1);
+        const metrics = [
+            { label: 'Feedback', value: String(data.totalFeedback || 0), tone: '#2563eb' },
+            { label: 'Avg Food', value: `${(data.avgRestaurant || 0).toFixed(1)}/5`, tone: '#3b82f6' },
+            { label: 'Avg Service', value: `${(data.avgServer || 0).toFixed(1)}/5`, tone: '#60a5fa' },
+            { label: 'Return', value: String(data.returnRate || 0), tone: '#10b981' }
+        ];
+
+        let metricX = 50;
+        metrics.forEach((metric) => {
+            doc.fillColor('#f8fbff').rect(metricX, 100, 120, 56).fill();
+            doc.fillColor(metric.tone).fontSize(8).font('Helvetica-Bold').text(metric.label.toUpperCase(), metricX + 10, 112);
+            doc.fillColor(text).fontSize(20).font('Helvetica-Bold').text(metric.value, metricX + 10, 124);
+            metricX += 130;
+        });
+
+        doc.fillColor(text).fontSize(16).font('Helvetica-Bold').text('Overview', 50, 180);
+        doc.fillColor(muted).fontSize(11).font('Helvetica').text(`Positive feedback: ${data.positive || 0}  |  Negative feedback: ${data.negative || 0}  |  Rated entries: ${data.totalWithRating || 0}`, 50, 205);
+
+        doc.fillColor(lightBlue).rect(50, 230, 495, 150).fill();
+        doc.fillColor(text).fontSize(12).font('Helvetica-Bold').text('Server Rankings', 70, 248);
+        const rankingRows = (data.serverRankings || []).slice(0, 5).map((s, idx) => [
+            String(idx + 1), s.name, `${(s.avgRating || 0).toFixed(1)} / 5`, `${s.count || 0}`
+        ]);
+        if (rankingRows.length) {
+            drawTable(doc, ['#', 'Server', 'Avg', 'Reviews'], rankingRows, 70, 270, [30, 180, 90, 70], 20, '#2563eb');
+        } else {
+            doc.fillColor(muted).fontSize(10).text('No ranking data available', 70, 270);
         }
 
-        if (data.categoryRatings && data.categoryRatings.length > 0) {
-            doc.fontSize(14).text('Category Performance', { underline: true });
-            doc.moveDown(0.3);
-            data.categoryRatings.forEach(c => {
-                doc.fontSize(11).text(`${c.category}: avg ${(c.avgRating || 0).toFixed(1)} / 5 (${c.count} responses)`);
-            });
-            doc.moveDown(1);
+        doc.fillColor(lightBlue).rect(50, 390, 495, 150).fill();
+        doc.fillColor(text).fontSize(12).font('Helvetica-Bold').text('Category Ratings', 70, 408);
+        const categoryChart = (data.categoryRatings || []).slice(0, 6).map(item => ({ label: item.category ? item.category.substring(0, 9) : 'Other', value: Number(item.avgRating || 0) }));
+        if (categoryChart.length) {
+            drawBarChart(doc, categoryChart, 70, 432, 260, 80, '#2563eb');
+        }
+        const categoryRows = (data.categoryRatings || []).slice(0, 6).map((c, idx) => [
+            String(idx + 1), c.category || 'Uncategorized', `${(c.avgRating || 0).toFixed(1)}`, `${c.count || 0}`
+        ]);
+        drawTable(doc, ['#', 'Category', 'Avg', 'Resp'], categoryRows, 350, 432, [25, 120, 60, 55], 16, '#1d4ed8');
+
+        let yPos = 560;
+        if ((data.customers || []).length) {
+            doc.fillColor(text).fontSize(16).font('Helvetica-Bold').text('Customer List', 50, yPos);
+            yPos += 24;
+            const customerRows = (data.customers || []).slice(0, 12).map((customer, idx) => [
+                String(idx + 1), customer.name || 'Unknown', customer.email || '-', customer.phone || '-'
+            ]);
+            drawTable(doc, ['#', 'Name', 'Email', 'Phone'], customerRows, 50, yPos, [28, 120, 170, 80], 16, '#2563eb');
+            yPos += 18 + (Math.min(customerRows.length, 12) * 16);
         }
 
-        if (data.recentFeedback && data.recentFeedback.length > 0) {
-            doc.fontSize(14).text('Recent Feedback', { underline: true });
-            doc.moveDown(0.3);
-            data.recentFeedback.slice(0, 10).forEach(f => {
-                doc.fontSize(10).text(`Server: ${f.serverName} | Rating: ${f.overallRating || 0} | Server: ${f.serverRating || 0} | ${f.comment || '-'} | ${new Date(f.createdAt || f.created_at).toLocaleDateString()}`);
-            });
+        if ((data.feedback || []).length) {
+            if (yPos > 680) {
+                doc.addPage();
+                yPos = 50;
+            }
+            doc.fillColor(text).fontSize(16).font('Helvetica-Bold').text('Customer Feedback', 50, yPos);
+            yPos += 24;
+            const feedbackRows = (data.feedback || []).slice(0, 12).map((item, idx) => [
+                String(idx + 1), item.customerName || 'Anonymous', item.serverName || 'Unknown', `${item.overallRating || 0}/5`, item.comment || '-'
+            ]);
+            drawTable(doc, ['#', 'Customer', 'Server', 'Food', 'Comment'], feedbackRows, 50, yPos, [28, 90, 90, 50, 170], 16, '#2563eb');
+            yPos += 18 + (Math.min(feedbackRows.length, 12) * 16);
+        }
+
+        if ((data.servers || []).length) {
+            if (yPos > 680) {
+                doc.addPage();
+                yPos = 50;
+            }
+            doc.fillColor(text).fontSize(16).font('Helvetica-Bold').text('Server Activity', 50, yPos);
+            yPos += 24;
+            const serverRows = (data.servers || []).slice(0, 12).map((s, idx) => [
+                String(idx + 1), s.name || 'Unknown', s.status || 'active', new Date(s.createdAt).toLocaleDateString()
+            ]);
+            drawTable(doc, ['#', 'Server', 'Status', 'Added'], serverRows, 50, yPos, [28, 180, 80, 90], 16, '#2563eb');
         }
 
         doc.end();
@@ -2453,5 +2495,4 @@ app.listen(PORT, async () => {
     console.log(`   2. Start MongoDB service`);
     console.log(`   3. Or use MongoDB Atlas with MONGODB_URI env variable\n`);
     
-    await checkAndResetRankingsIfNeeded();
 });

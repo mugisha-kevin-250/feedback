@@ -313,10 +313,6 @@
             transform: translateY(-1px);
         }
 
-        #restartSystemBtn:hover {
-            background: #dc2626;
-        }
-
         /* Recent feedback card */
         .recent-card {
             background: white;
@@ -912,9 +908,6 @@
                 </div>
             </div>
             
-            <button id="restartSystemBtn" style="margin-top: 8px; width: 100%; padding: 10px; background: #ef4444; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: 0.2s;">
-                ⚠️ Restart System
-            </button>
         </aside>
         <main class="admin-main">
             <!-- Tab Content -->
@@ -978,6 +971,12 @@
                 <div class="stat-item"><strong>Avg Server</strong><div class="value" id="reportAvgServer">⭐ 0</div></div>
                 <div class="stat-item"><strong>Will Return</strong><div class="value" id="reportWillReturn" style="color:#16a34a;">0</div></div>
                 <div class="stat-item"><strong>Will Not Return</strong><div class="value" id="reportNotReturn" style="color:#dc2626;">0</div></div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; margin-bottom: 18px;">
+                <button id="downloadFullReportBtn" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; border-radius: 10px; padding: 12px 18px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 18px rgba(37,99,235,0.25);">
+                    ⬇ Download Full System Report
+                </button>
             </div>
 
             <div class="recent-card">
@@ -1146,20 +1145,6 @@
         });
         document.getElementById('logoutBtn').addEventListener('click', () => {
             logout();
-        });
-
-        document.getElementById('restartSystemBtn').addEventListener('click', async () => {
-            const confirmed = await showConfirmModal('This will DELETE ALL DATA and restart the server. Are you absolutely sure?', 'Restart System');
-            if (!confirmed) return;
-            try {
-                await apiFetch('/admin/full-reset', { method: 'POST' });
-                showToast('System reset complete. Data cleared and defaults restored.', 'success');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            } catch (err) {
-                showToast(err.message || 'Failed to restart system', 'error');
-            }
         });
 
         async function loadStorageInfo() {
@@ -1540,6 +1525,32 @@
                 cr.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#999;">No category data</td></tr>';
             }
         }
+
+        document.getElementById('downloadFullReportBtn').addEventListener('click', async () => {
+            try {
+                const token = localStorage.getItem('serveRateToken');
+                const res = await fetch(`${API_BASE}/reports/download`, {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    credentials: 'include'
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({ error: 'Failed to download full report' }));
+                    throw new Error(data.error || 'Failed to download full report');
+                }
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'full-system-report.pdf';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                showToast('Full system report download started', 'success');
+            } catch (err) {
+                showToast(err.message || 'Failed to download report', 'error');
+            }
+        });
 
         // ---- Customers ----
         async function renderCustomers() {
