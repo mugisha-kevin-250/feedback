@@ -114,6 +114,47 @@
             margin-bottom: 18px;
             opacity: 0.9;
         }
+        #serverSelectScreen .server-selection-icon {
+            position: relative;
+            display: inline-grid;
+            place-items: center;
+            width: 112px;
+            height: 112px;
+            margin: 0 auto 18px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #eff6ff, #dbeafe);
+            color: #2563eb;
+            font-size: 3.5rem;
+            box-shadow: 0 12px 28px rgba(37, 99, 235, 0.18), inset 0 0 0 1px rgba(37, 99, 235, 0.12);
+            isolation: isolate;
+            animation: server-selection-bob 2.8s ease-in-out infinite;
+            will-change: transform;
+        }
+        #serverSelectScreen .server-selection-icon::before {
+            position: absolute;
+            z-index: -1;
+            inset: -8px;
+            border: 2px solid rgba(37, 99, 235, 0.32);
+            border-radius: inherit;
+            content: "";
+            animation: server-selection-pulse 2.8s ease-out infinite;
+            will-change: transform, opacity;
+        }
+        @keyframes server-selection-bob {
+            0%, 100% { transform: translate3d(0, 0, 0); }
+            50% { transform: translate3d(0, -7px, 0); }
+        }
+        @keyframes server-selection-pulse {
+            0% { opacity: 0.7; transform: scale(0.94); }
+            100% { opacity: 0; transform: scale(1.18); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #serverSelectScreen .server-selection-icon,
+            #serverSelectScreen .server-selection-icon::before {
+                animation: none;
+                will-change: auto;
+            }
+        }
         .btn-primary {
             background: #4f46e5;
             border: none;
@@ -877,7 +918,7 @@
         </div>
         <!-- Server selection (step 0) -->
         <div id="serverSelectScreen" class="welcome-screen">
-            <div class="icon-large"><i class="fas fa-user-tie"></i></div>
+            <div class="icon-large server-selection-icon"><i class="fas fa-user-tie"></i></div>
             <h1>Who is serving?</h1>
             <p>Select the server for this session</p>
             <div id="serverList" class="server-list-grid"></div>
